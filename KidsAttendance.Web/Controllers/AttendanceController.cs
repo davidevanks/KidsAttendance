@@ -194,7 +194,7 @@ public class AttendanceController : Controller
             return RedirectToAction(nameof(CheckOut));
         }
 
-        var checkOutSignaturePath = await _signatureService.SaveBase64SignatureAsync(model.CheckOutSignatureBase64, "checkout");
+        var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
         var now = DateTime.UtcNow;
         var teacherId = _userManager.GetUserId(User);
 
@@ -203,7 +203,8 @@ public class AttendanceController : Controller
             record.CheckOutGuardianId = model.CheckOutGuardianId;
             record.CheckOutTeacherId = teacherId;
             record.CheckOutTime = now;
-            record.CheckOutSignaturePath = checkOutSignaturePath;
+            record.CheckOutSignatureData = checkOutSignatureData;
+            record.CheckOutSignaturePath = null;
             record.Status = "CheckedOut";
             record.UpdatedAt = now;
         }
@@ -271,7 +272,9 @@ public class AttendanceController : Controller
                 x.Status,
                 x.ClassGroupId,
                 x.CheckInSignatureData,
+                x.CheckOutSignatureData,
                 x.CheckInSignaturePath,
+                x.CheckOutSignaturePath,
                 x.CheckInGuardianId,
                 x.ChildId
             })
@@ -297,10 +300,14 @@ public class AttendanceController : Controller
         {
             var guardian = guardiansMap.GetValueOrDefault(x.CheckInGuardianId);
             var childDisplayName = childrenMap.GetValueOrDefault(x.ChildId, $"Niño #{x.ChildId}");
-            var signatureDataUrl = x.CheckInSignatureData is not null && x.CheckInSignatureData.Length > 0
+            var checkInSignatureDataUrl = x.CheckInSignatureData is not null && x.CheckInSignatureData.Length > 0
                 ? $"data:image/png;base64,{Convert.ToBase64String(x.CheckInSignatureData)}"
                 : null;
-            var signaturePath = signatureDataUrl ?? x.CheckInSignaturePath;
+            var checkInSignaturePath = checkInSignatureDataUrl ?? x.CheckInSignaturePath;
+            var checkOutSignatureDataUrl = x.CheckOutSignatureData is not null && x.CheckOutSignatureData.Length > 0
+                ? $"data:image/png;base64,{Convert.ToBase64String(x.CheckOutSignatureData)}"
+                : null;
+            var checkOutSignaturePath = checkOutSignatureDataUrl ?? x.CheckOutSignaturePath;
 
             return new AttendanceTodayRowViewModel
             {
@@ -310,7 +317,8 @@ public class AttendanceController : Controller
                 ChildName = childDisplayName,
                 TokenNumber = x.TokenNumber ?? "-",
                 DisplayStatus = MapStatus(x.Status),
-                SignaturePath = signaturePath
+                CheckInSignaturePath = checkInSignaturePath,
+                CheckOutSignaturePath = checkOutSignaturePath
             };
         }).ToList();
 

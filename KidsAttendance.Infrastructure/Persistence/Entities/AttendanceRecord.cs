@@ -12,6 +12,7 @@ public class AttendanceRecord
     public DateTime CheckInTime { get; set; }
     public DateTime? CheckOutTime { get; set; }
     public byte[]? CheckInSignatureData { get; set; }
+    public byte[]? CheckOutSignatureData { get; set; }
     public string? CheckInSignaturePath { get; set; }
     public string? CheckOutSignaturePath { get; set; }
     public string CheckInTeacherId { get; set; } = string.Empty;

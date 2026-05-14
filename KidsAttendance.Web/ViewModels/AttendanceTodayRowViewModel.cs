@@ -8,5 +8,6 @@ public class AttendanceTodayRowViewModel
     public string ChildName { get; set; } = string.Empty;
     public string TokenNumber { get; set; } = string.Empty;
     public string DisplayStatus { get; set; } = string.Empty;
-    public string? SignaturePath { get; set; }
+    public string? CheckInSignaturePath { get; set; }
+    public string? CheckOutSignaturePath { get; set; }
 }

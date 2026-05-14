@@ -54,7 +54,7 @@
                 {
                     <th>Grupo</th>
                 }
-                <th>Nombre tutor</th><th>Teléfono tutor</th><th>Nombre niño</th><th>Ficha</th><th>Status</th><th>Firma</th>
+                <th>Nombre tutor</th><th>Teléfono tutor</th><th>Nombre niño</th><th>Ficha</th><th>Status</th><th>Firma entrada</th><th>Firma salida</th>
             </tr>
         </thead>
         <tbody>
@@ -71,9 +71,19 @@
                 <td>@r.TokenNumber</td>
                 <td>@r.DisplayStatus</td>
                 <td>
-                    @if (!string.IsNullOrWhiteSpace(r.SignaturePath))
+                    @if (!string.IsNullOrWhiteSpace(r.CheckInSignaturePath))
                     {
-                        <img src="@r.SignaturePath" alt="Firma tutor" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" />
+                        <img src="@r.CheckInSignaturePath" alt="Firma entrada tutor" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" />
+                    }
+                    else
+                    {
+                        <span class="text-muted small">Sin firma</span>
+                    }
+                </td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(r.CheckOutSignaturePath))
+                    {
+                        <img src="@r.CheckOutSignaturePath" alt="Firma salida tutor" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" />
                     }
                     else
                     {

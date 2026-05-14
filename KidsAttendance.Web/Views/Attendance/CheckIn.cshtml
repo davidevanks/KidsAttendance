@@ -16,7 +16,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <form asp-action="CheckIn" method="post">
+        <form id="checkin-form" asp-action="CheckIn" method="post">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             @if (teacherFixedGroup is not null)

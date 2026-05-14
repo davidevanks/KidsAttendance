@@ -3,7 +3,7 @@ $(function () {
         ? window.kidsAttendanceSignatures.initSignaturePad("checkin-signature-pad", "CheckInSignatureBase64", "btn-clear-checkin-signature")
         : null;
 
-    var form = $("form").first();
+    var form = $("#checkin-form");
     var guardianSelect = $("#GuardianId");
     var childSelect = $("#ChildIds");
     var classGroupInput = $("#ClassGroupId");
@@ -168,6 +168,10 @@ $(function () {
             $("#quick-child-panel").addClass("d-none");
         });
     });
+
+    if (!form.length) {
+        return;
+    }
 
     form.on("submit", function () {
         if (signatureHandler) {

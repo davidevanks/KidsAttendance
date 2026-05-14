@@ -5,7 +5,7 @@ $(function () {
 
     var recordSelect = $("#RecordIds");
     var guardianSelect = $("#CheckOutGuardianId");
-    var form = $("form").last();
+    var form = $("#checkout-form");
 
     recordSelect.select2({
         theme: "bootstrap-5",
@@ -53,6 +53,10 @@ $(function () {
 
     recordSelect.on("change", loadGuardiansByChildren);
     loadGuardiansByChildren();
+
+    if (!form.length) {
+        return;
+    }
 
     form.on("submit", function () {
         if (signatureHandler) {
