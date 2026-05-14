@@ -122,6 +122,7 @@ public partial class KidsAttendanceDbContext : IdentityDbContext<AppUser, AppRol
             entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("CheckedIn");
             entity.Property(x => x.CheckInTeacherId).HasMaxLength(450).IsRequired();
             entity.Property(x => x.CheckOutTeacherId).HasMaxLength(450);
+            entity.Property(x => x.CheckInSignatureData).HasColumnType("varbinary(max)");
             entity.Property(x => x.CheckInSignaturePath).HasMaxLength(500);
             entity.Property(x => x.CheckOutSignaturePath).HasMaxLength(500);
             entity.Property(x => x.CheckInTime).HasDefaultValueSql("SYSDATETIME()");

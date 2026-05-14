@@ -12,7 +12,7 @@ public class SignatureService : ISignatureService
         _environment = environment;
     }
 
-    public async Task<string?> SaveBase64SignatureAsync(string? base64Signature, string prefix, CancellationToken cancellationToken = default)
+    public byte[]? DecodeBase64Signature(string? base64Signature)
     {
         if (string.IsNullOrWhiteSpace(base64Signature))
         {
@@ -34,6 +34,17 @@ public class SignatureService : ISignatureService
         }
 
         if (bytes.Length == 0 || bytes.Length > 1_000_000)
+        {
+            return null;
+        }
+
+        return bytes;
+    }
+
+    public async Task<string?> SaveBase64SignatureAsync(string? base64Signature, string prefix, CancellationToken cancellationToken = default)
+    {
+        var bytes = DecodeBase64Signature(base64Signature);
+        if (bytes is null)
         {
             return null;
         }

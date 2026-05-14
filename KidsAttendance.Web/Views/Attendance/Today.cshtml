@@ -3,6 +3,7 @@
     var rows = ViewBag.Rows as IReadOnlyList<KidsAttendance.Web.ViewModels.AttendanceTodayRowViewModel> ?? new List<KidsAttendance.Web.ViewModels.AttendanceTodayRowViewModel>();
     var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
     var isTeacher = (ViewBag.IsTeacher as bool?) == true;
+    var isAdmin = (ViewBag.IsAdmin as bool?) == true;
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
     var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
     int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
@@ -47,11 +48,23 @@
 </form>
 <div class="table-responsive">
     <table class="table table-striped align-middle">
-        <thead><tr><th>Nombre tutor</th><th>Teléfono tutor</th><th>Nombre niño</th><th>Ficha</th><th>Status</th><th>Firma</th></tr></thead>
+        <thead>
+            <tr>
+                @if (isAdmin)
+                {
+                    <th>Grupo</th>
+                }
+                <th>Nombre tutor</th><th>Teléfono tutor</th><th>Nombre niño</th><th>Ficha</th><th>Status</th><th>Firma</th>
+            </tr>
+        </thead>
         <tbody>
         @foreach (var r in rows)
         {
             <tr>
+                @if (isAdmin)
+                {
+                    <td>@r.ClassGroupName</td>
+                }
                 <td>@r.GuardianName</td>
                 <td>@r.GuardianPhone</td>
                 <td>@r.ChildName</td>

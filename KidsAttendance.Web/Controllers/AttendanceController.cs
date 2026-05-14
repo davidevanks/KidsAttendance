@@ -115,7 +115,7 @@ public class AttendanceController : Controller
         }
 
         var userId = _userManager.GetUserId(User) ?? string.Empty;
-        var checkInSignaturePath = await _signatureService.SaveBase64SignatureAsync(model.CheckInSignatureBase64, "checkin");
+        var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
         var now = DateTime.UtcNow;
 
         foreach (var childId in selectedChildIds)
@@ -129,7 +129,7 @@ public class AttendanceController : Controller
                 CheckInGuardianId = model.GuardianId,
                 CheckInTeacherId = userId,
                 CheckInTime = now,
-                CheckInSignaturePath = checkInSignaturePath,
+                CheckInSignatureData = checkInSignatureData,
                 Status = "CheckedIn",
                 CreatedAt = now
             });
@@ -220,6 +220,7 @@ public class AttendanceController : Controller
         var session = await _dbContext.AttendanceSessions.AsNoTracking().FirstOrDefaultAsync(x => x.SessionDate == targetDate);
         ViewBag.Date = targetDate;
         ViewBag.IsTeacher = User.IsInRole("Teacher");
+        ViewBag.IsAdmin = User.IsInRole("Admin");
         ViewBag.GuardianName = guardianName;
         ViewBag.GuardianPhone = guardianPhone;
         ViewBag.ChildName = childName;
@@ -268,6 +269,8 @@ public class AttendanceController : Controller
             {
                 x.TokenNumber,
                 x.Status,
+                x.ClassGroupId,
+                x.CheckInSignatureData,
                 x.CheckInSignaturePath,
                 x.CheckInGuardianId,
                 x.ChildId
@@ -285,19 +288,29 @@ public class AttendanceController : Controller
             .Where(x => childIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.FullName);
 
+        var classGroupIds = records.Select(x => x.ClassGroupId).Distinct().ToList();
+        var classGroupsMap = await _dbContext.ClassGroups.AsNoTracking()
+            .Where(x => classGroupIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Name);
+
         var rows = records.Select(x =>
         {
             var guardian = guardiansMap.GetValueOrDefault(x.CheckInGuardianId);
             var childDisplayName = childrenMap.GetValueOrDefault(x.ChildId, $"Niño #{x.ChildId}");
+            var signatureDataUrl = x.CheckInSignatureData is not null && x.CheckInSignatureData.Length > 0
+                ? $"data:image/png;base64,{Convert.ToBase64String(x.CheckInSignatureData)}"
+                : null;
+            var signaturePath = signatureDataUrl ?? x.CheckInSignaturePath;
 
             return new AttendanceTodayRowViewModel
             {
+                ClassGroupName = classGroupsMap.GetValueOrDefault(x.ClassGroupId, "-"),
                 GuardianName = guardian?.FullName ?? $"Tutor #{x.CheckInGuardianId}",
                 GuardianPhone = guardian?.PhoneNumber ?? "-",
                 ChildName = childDisplayName,
                 TokenNumber = x.TokenNumber ?? "-",
                 DisplayStatus = MapStatus(x.Status),
-                SignaturePath = x.CheckInSignaturePath
+                SignaturePath = signaturePath
             };
         }).ToList();
 

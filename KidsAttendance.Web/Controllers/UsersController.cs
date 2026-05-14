@@ -23,6 +23,15 @@ public class UsersController : Controller
     public async Task<IActionResult> Index()
     {
         var users = await _userManager.Users.OrderBy(x => x.FullName).ToListAsync();
+        var userRoles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles.FirstOrDefault() ?? "-";
+        }
+
+        ViewBag.UserRoles = userRoles;
         return View(users);
     }
 
