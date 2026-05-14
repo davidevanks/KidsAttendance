@@ -114,22 +114,6 @@ public class AttendanceController : Controller
             return View(model);
         }
 
-        if (!string.IsNullOrWhiteSpace(normalizedToken))
-        {
-            var tokenAlreadyInUse = await _dbContext.AttendanceRecords.AsNoTracking()
-                .AnyAsync(x =>
-                    x.AttendanceSessionId == session.Id &&
-                    x.ClassGroupId == model.ClassGroupId &&
-                    x.Status == "CheckedIn" &&
-                    x.TokenNumber != null &&
-                    x.TokenNumber == normalizedToken);
-            if (tokenAlreadyInUse)
-            {
-                ModelState.AddModelError(nameof(model.TokenNumber), "La ficha ya está en uso en este grupo.");
-                return View(model);
-            }
-        }
-
         var userId = _userManager.GetUserId(User) ?? string.Empty;
         var checkInSignaturePath = await _signatureService.SaveBase64SignatureAsync(model.CheckInSignatureBase64, "checkin");
         var now = DateTime.UtcNow;

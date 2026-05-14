@@ -13,15 +13,18 @@ $(function () {
         return parseInt(classGroupInput.val(), 10) || 0;
     }
 
-    function renderChildrenOptions(children) {
+    function renderChildrenOptions(children, selectedIds) {
         childSelect.empty();
         children.forEach(function (item) {
             childSelect.append($("<option>", { value: item.id, text: item.fullName }));
         });
+        if (Array.isArray(selectedIds) && selectedIds.length > 0) {
+            childSelect.val(selectedIds);
+        }
         childSelect.trigger("change");
     }
 
-    function loadChildrenByGuardian() {
+    function loadChildrenByGuardian(newChildIdToSelect) {
         var guardianId = guardianSelect.val();
         var classGroupId = getClassGroupId();
         if (!guardianId || !classGroupId) {
@@ -29,15 +32,27 @@ $(function () {
             return;
         }
 
+        var previouslySelectedIds = childSelect.val() || [];
         $.get("/Attendance/GetChildrenByGuardianAndGroup", { guardianId: guardianId, classGroupId: classGroupId })
             .done(function (data) {
                 if (!Array.isArray(data)) {
                     return;
                 }
-                renderChildrenOptions(data);
-                if (data.length === 1) {
-                    childSelect.val([String(data[0].id)]).trigger("change");
+
+                var availableIds = new Set(data.map(function (item) { return String(item.id); }));
+                var selectedIds = previouslySelectedIds.filter(function (id) { return availableIds.has(String(id)); });
+                if (newChildIdToSelect !== undefined && newChildIdToSelect !== null) {
+                    var newChildIdAsString = String(newChildIdToSelect);
+                    if (availableIds.has(newChildIdAsString) && selectedIds.indexOf(newChildIdAsString) === -1) {
+                        selectedIds.push(newChildIdAsString);
+                    }
                 }
+
+                if (selectedIds.length === 0 && data.length === 1) {
+                    selectedIds = [String(data[0].id)];
+                }
+
+                renderChildrenOptions(data, selectedIds);
             });
     }
 
@@ -148,7 +163,7 @@ $(function () {
                 return;
             }
 
-            loadChildrenByGuardian();
+            loadChildrenByGuardian(result.childId);
             $("#quick-child-msg").removeClass("text-danger").addClass("text-success").text("Niño guardado.");
             $("#quick-child-panel").addClass("d-none");
         });

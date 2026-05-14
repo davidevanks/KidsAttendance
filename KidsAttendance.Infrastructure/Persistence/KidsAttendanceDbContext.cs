@@ -130,6 +130,9 @@ public partial class KidsAttendanceDbContext : IdentityDbContext<AppUser, AppRol
             entity.HasIndex(x => x.ChildId);
             entity.HasIndex(x => x.ClassGroupId);
             entity.HasIndex(x => x.TokenNumber);
+            entity.HasIndex(x => new { x.AttendanceSessionId, x.ClassGroupId, x.TokenNumber })
+                .HasDatabaseName("IX_AttendanceRecords_ActiveTokenBySessionGroup")
+                .HasFilter("[Status] = N'CheckedIn' AND [TokenNumber] IS NOT NULL");
         });
     }
 }
