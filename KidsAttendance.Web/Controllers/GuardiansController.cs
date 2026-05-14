@@ -105,7 +105,7 @@ public class GuardiansController : Controller
         var exists = await _dbContext.Guardians.AnyAsync(x => x.PhoneNumber == model.PhoneNumber.Trim());
         if (exists)
         {
-            ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un tutor con ese celular.");
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un padre con ese celular.");
             return View(model);
         }
 
@@ -119,7 +119,7 @@ public class GuardiansController : Controller
         });
 
         await _dbContext.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Tutor creado correctamente.";
+        TempData["SuccessMessage"] = "Padre creado correctamente.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -151,7 +151,7 @@ public class GuardiansController : Controller
         var duplicated = await _dbContext.Guardians.AnyAsync(x => x.Id != model.Id && x.PhoneNumber == model.PhoneNumber.Trim());
         if (duplicated)
         {
-            ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un tutor con ese celular.");
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un padre con ese celular.");
             return View(model);
         }
 
@@ -162,7 +162,7 @@ public class GuardiansController : Controller
         guardian.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Tutor actualizado.";
+        TempData["SuccessMessage"] = "Padre actualizado.";
         return RedirectToAction(nameof(Index));
     }
 

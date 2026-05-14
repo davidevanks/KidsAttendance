@@ -1,12 +1,12 @@
 @model IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Guardian>
 @{
-    ViewData["Title"] = "Tutores";
+    ViewData["Title"] = "Padres";
     var termFilter = ViewBag.TermFilter as string;
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4 mb-0">Tutores</h1>
-    <a asp-action="Create" class="btn btn-primary">Nuevo tutor</a>
+    <h1 class="h4 mb-0">Padres</h1>
+    <a asp-action="Create" class="btn btn-primary">Nuevo padre</a>
 </div>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 @if (teacherNoGroup) { <div class="alert alert-warning">No tenés grupo activo asignado.</div> }

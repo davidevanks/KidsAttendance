@@ -190,7 +190,7 @@ public class AttendanceController : Controller
             .ToListAsync();
         if (!validGuardianIds.Contains(model.CheckOutGuardianId))
         {
-            TempData["ErrorMessage"] = "El tutor seleccionado no está asociado a los niños elegidos.";
+            TempData["ErrorMessage"] = "El padre seleccionado no está asociado a los niños elegidos.";
             return RedirectToAction(nameof(CheckOut));
         }
 
@@ -312,7 +312,7 @@ public class AttendanceController : Controller
             return new AttendanceTodayRowViewModel
             {
                 ClassGroupName = classGroupsMap.GetValueOrDefault(x.ClassGroupId, "-"),
-                GuardianName = guardian?.FullName ?? $"Tutor #{x.CheckInGuardianId}",
+                GuardianName = guardian?.FullName ?? $"Padre #{x.CheckInGuardianId}",
                 GuardianPhone = guardian?.PhoneNumber ?? "-",
                 ChildName = childDisplayName,
                 TokenNumber = x.TokenNumber ?? "-",

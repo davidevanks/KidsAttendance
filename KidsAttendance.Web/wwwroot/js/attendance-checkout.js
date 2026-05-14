@@ -16,7 +16,7 @@ $(function () {
     guardianSelect.select2({
         theme: "bootstrap-5",
         width: "100%",
-        placeholder: "Seleccioná tutor que retira"
+        placeholder: "Seleccioná padre que retira"
     });
 
     function loadGuardiansByChildren() {
@@ -28,7 +28,7 @@ $(function () {
             }
         });
 
-        guardianSelect.empty().append($("<option>", { value: "", text: "Seleccioná tutor" })).trigger("change");
+        guardianSelect.empty().append($("<option>", { value: "", text: "Seleccioná padre" })).trigger("change");
         if (childIds.length === 0) {
             return;
         }

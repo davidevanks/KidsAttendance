@@ -59,7 +59,7 @@ $(function () {
     guardianSelect.select2({
         theme: "bootstrap-5",
         width: "100%",
-        placeholder: "Buscar tutor...",
+        placeholder: "Buscar padre...",
         minimumInputLength: 2,
         ajax: {
             url: "/Attendance/SearchGuardianByPhone",
@@ -118,14 +118,14 @@ $(function () {
             }
         }).done(function (result) {
             if (!result || !result.success) {
-                $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("No se pudo guardar tutor.");
+                $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("No se pudo guardar padre.");
                 return;
             }
 
             var optionText = result.fullName + " - " + result.phoneNumber;
             var newOption = new Option(optionText, result.guardianId, true, true);
             guardianSelect.append(newOption).trigger("change");
-            $("#quick-guardian-msg").removeClass("text-danger").addClass("text-success").text("Tutor guardado.");
+            $("#quick-guardian-msg").removeClass("text-danger").addClass("text-success").text("Padre guardado.");
             $("#quick-guardian-panel").addClass("d-none");
         });
     });
@@ -137,7 +137,7 @@ $(function () {
         var classGroupId = getClassGroupId();
 
         if (!guardianId) {
-            $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("Seleccioná primero un tutor.");
+            $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("Seleccioná primero un padre.");
             return;
         }
 

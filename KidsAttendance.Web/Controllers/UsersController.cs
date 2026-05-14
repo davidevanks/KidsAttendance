@@ -57,6 +57,18 @@ public class UsersController : Controller
             return View(model);
         }
 
+        var normalizedPhone = NormalizePhoneNumber(model.PhoneNumber);
+        if (!string.IsNullOrWhiteSpace(normalizedPhone))
+        {
+            var phoneAlreadyExists = await _userManager.Users.AsNoTracking()
+                .AnyAsync(x => x.PhoneNumber == normalizedPhone);
+            if (phoneAlreadyExists)
+            {
+                ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un usuario con ese celular.");
+                return View(model);
+            }
+        }
+
         var user = new AppUser
         {
             Id = Guid.NewGuid().ToString(),
@@ -65,6 +77,7 @@ public class UsersController : Controller
             UserName = model.Email.Trim(),
             NormalizedEmail = model.Email.Trim().ToUpperInvariant(),
             NormalizedUserName = model.Email.Trim().ToUpperInvariant(),
+            PhoneNumber = normalizedPhone,
             EmailConfirmed = true,
             IsActive = model.IsActive,
             CreatedAt = DateTime.UtcNow
@@ -98,6 +111,7 @@ public class UsersController : Controller
             Id = user.Id,
             FullName = user.FullName,
             Email = user.Email ?? string.Empty,
+            PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
             Role = roles.FirstOrDefault() ?? "Teacher"
         });
@@ -116,11 +130,24 @@ public class UsersController : Controller
         var user = await _userManager.FindByIdAsync(model.Id);
         if (user is null) return NotFound();
 
+        var normalizedPhone = NormalizePhoneNumber(model.PhoneNumber);
+        if (!string.IsNullOrWhiteSpace(normalizedPhone))
+        {
+            var duplicatedPhone = await _userManager.Users.AsNoTracking()
+                .AnyAsync(x => x.Id != user.Id && x.PhoneNumber == normalizedPhone);
+            if (duplicatedPhone)
+            {
+                ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un usuario con ese celular.");
+                return View(model);
+            }
+        }
+
         user.FullName = model.FullName.Trim();
         user.Email = model.Email.Trim();
         user.UserName = model.Email.Trim();
         user.NormalizedEmail = model.Email.Trim().ToUpperInvariant();
         user.NormalizedUserName = model.Email.Trim().ToUpperInvariant();
+        user.PhoneNumber = normalizedPhone;
         user.IsActive = model.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -176,5 +203,15 @@ public class UsersController : Controller
                 await _roleManager.CreateAsync(new AppRole { Name = roleName, NormalizedName = roleName.ToUpperInvariant() });
             }
         }
+    }
+
+    private static string? NormalizePhoneNumber(string? phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            return null;
+        }
+
+        return phoneNumber.Trim();
     }
 }

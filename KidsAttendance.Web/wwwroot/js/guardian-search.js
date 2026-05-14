@@ -20,7 +20,7 @@ $(function () {
                 }
 
                 guardianSelect.empty();
-                guardianSelect.append($("<option>", { value: "", text: "Tutor" }));
+                guardianSelect.append($("<option>", { value: "", text: "Padre" }));
                 data.forEach(function (item) {
                     guardianSelect.append($("<option>", {
                         value: item.id,

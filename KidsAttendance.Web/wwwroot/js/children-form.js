@@ -6,7 +6,7 @@ $(function () {
 
     $guardianSelect.select2({
         width: "100%",
-        placeholder: $guardianSelect.data("placeholder") || "Seleccioná tutores",
+        placeholder: $guardianSelect.data("placeholder") || "Seleccioná padres",
         allowClear: true,
         closeOnSelect: false
     });

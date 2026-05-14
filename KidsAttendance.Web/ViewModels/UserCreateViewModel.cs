@@ -16,6 +16,11 @@ public class UserCreateViewModel
     [Display(Name = "Correo")]
     public string Email { get; set; } = string.Empty;
 
+    [StringLength(30)]
+    [Phone]
+    [Display(Name = "Celular")]
+    public string? PhoneNumber { get; set; }
+
     [Display(Name = "Activo")]
     public bool IsActive { get; set; } = true;
 

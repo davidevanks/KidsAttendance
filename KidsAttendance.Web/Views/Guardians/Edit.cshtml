@@ -1,15 +1,15 @@
 @model KidsAttendance.Web.ViewModels.GuardianCreateViewModel
 @{
-    ViewData["Title"] = "Editar Tutor";
+    ViewData["Title"] = "Editar Padre";
 }
-<h1 class="h4 mb-3">Editar Tutor</h1>
+<h1 class="h4 mb-3">Editar Padre</h1>
 <partial name="_GuardianForm" model="Model" />
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
         $(function () {
             $("form").on("submit", function () {
-                return confirm("¿Estás seguro de editar este tutor?");
+                return confirm("¿Estás seguro de editar este padre?");
             });
         });
     </script>

@@ -34,22 +34,22 @@
                 </select>
             }
 
-            <label class="form-label">Tutor (buscar por celular o nombre)</label>
+            <label class="form-label">Padre (buscar por celular o nombre)</label>
             <select asp-for="GuardianId" id="GuardianId" class="form-select form-select-lg mb-2">
-                <option value="">Buscar tutor...</option>
+                <option value="">Buscar padre...</option>
             </select>
             <div class="d-flex gap-2 mb-3">
-                <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-secondary btn-sm">Tutor no existe</button>
+                <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-secondary btn-sm">Padre no existe</button>
             </div>
 
             <div id="quick-guardian-panel" class="border rounded p-2 mb-3 d-none">
-                <div class="small fw-semibold mb-2">Agregar tutor rápido</div>
+                <div class="small fw-semibold mb-2">Agregar padre rápido</div>
                 <div class="row g-2">
                     <div class="col-12 col-md-6">
-                        <input id="quick-guardian-name" class="form-control" placeholder="Nombre tutor" />
+                        <input id="quick-guardian-name" class="form-control" placeholder="Nombre padre" />
                     </div>
                     <div class="col-12 col-md-4">
-                        <input id="quick-guardian-phone" class="form-control" placeholder="Celular tutor" />
+                        <input id="quick-guardian-phone" class="form-control" placeholder="Celular padre" />
                     </div>
                     <div class="col-12 col-md-2">
                         <button id="btn-quick-save-guardian" type="button" class="btn btn-primary w-100">Guardar</button>
