@@ -1,0 +1,10 @@
+@model KidsAttendance.Web.ViewModels.ChildCreateViewModel
+@{
+    ViewData["Title"] = "Nuevo Niño";
+}
+<h1 class="h4 mb-3">Nuevo Niño</h1>
+<partial name="_ChildForm" model="Model" />
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/children-form.js" asp-append-version="true"></script>
+}

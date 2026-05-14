@@ -1,0 +1,74 @@
+@{
+    ViewData["Title"] = "Asistencia del Día";
+    var rows = ViewBag.Rows as IReadOnlyList<KidsAttendance.Web.ViewModels.AttendanceTodayRowViewModel> ?? new List<KidsAttendance.Web.ViewModels.AttendanceTodayRowViewModel>();
+    var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
+    var isTeacher = (ViewBag.IsTeacher as bool?) == true;
+    var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
+    var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
+    int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
+}
+<h1 class="h4 mb-3">Asistencia del Día</h1>
+@if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
+@if (teacherNoGroup)
+{
+    <div class="alert alert-warning">No tenés grupo activo asignado. Solicitá asignación al administrador.</div>
+}
+<form method="get" class="row g-2 mb-3">
+    <div class="col-6"><input type="date" name="date" value="@(((DateTime?)ViewBag.Date ?? DateTime.Today).ToString("yyyy-MM-dd"))" class="form-control form-control-lg" /></div>
+    <div class="col-6">
+        @if (isTeacher)
+        {
+            <select class="form-select form-select-lg" disabled>
+                <option value="@teacherFixedGroup?.Id">@teacherFixedGroup?.Name</option>
+            </select>
+            <input type="hidden" name="classGroupId" value="@teacherFixedGroup?.Id" />
+        }
+        else
+        {
+            <select name="classGroupId" class="form-select form-select-lg">
+                <option value="">Todos los grupos</option>
+                @foreach (var g in groups)
+                {
+                    <option value="@g.Id" selected="@(selectedClassGroupId == g.Id ? "selected" : null)">@g.Name</option>
+                }
+            </select>
+        }
+    </div>
+    <div class="col-12 col-md-4">
+        <input name="guardianName" value="@(ViewBag.GuardianName as string)" class="form-control form-control-lg" placeholder="Nombre tutor" />
+    </div>
+    <div class="col-12 col-md-4">
+        <input name="guardianPhone" value="@(ViewBag.GuardianPhone as string)" class="form-control form-control-lg" placeholder="Teléfono tutor" />
+    </div>
+    <div class="col-12 col-md-4">
+        <input name="childName" value="@(ViewBag.ChildName as string)" class="form-control form-control-lg" placeholder="Nombre niño" />
+    </div>
+    <div class="col-12"><button class="btn btn-outline-primary btn-lg w-100">Aplicar filtros</button></div>
+</form>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Nombre tutor</th><th>Teléfono tutor</th><th>Nombre niño</th><th>Ficha</th><th>Status</th><th>Firma</th></tr></thead>
+        <tbody>
+        @foreach (var r in rows)
+        {
+            <tr>
+                <td>@r.GuardianName</td>
+                <td>@r.GuardianPhone</td>
+                <td>@r.ChildName</td>
+                <td>@r.TokenNumber</td>
+                <td>@r.DisplayStatus</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(r.SignaturePath))
+                    {
+                        <img src="@r.SignaturePath" alt="Firma tutor" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" />
+                    }
+                    else
+                    {
+                        <span class="text-muted small">Sin firma</span>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

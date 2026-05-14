@@ -1,0 +1,182 @@
+using KidsAttendance.Infrastructure.Persistence;
+using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace KidsAttendance.Web.Controllers;
+
+[Authorize(Roles = "Admin,Teacher")]
+public class GuardiansController : Controller
+{
+    private readonly KidsAttendanceDbContext _dbContext;
+    private readonly UserManager<AppUser> _userManager;
+
+    public GuardiansController(KidsAttendanceDbContext dbContext, UserManager<AppUser> userManager)
+    {
+        _dbContext = dbContext;
+        _userManager = userManager;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Index(string? term)
+    {
+        var query = _dbContext.Guardians.AsNoTracking().AsQueryable();
+
+        if (User.IsInRole("Teacher"))
+        {
+            var allowedGroupIds = await GetAssignedGroupIdsAsync();
+            if (allowedGroupIds.Count == 0)
+            {
+                ViewBag.TermFilter = term;
+                ViewBag.TeacherNoGroup = true;
+                return View(new List<Guardian>());
+            }
+
+            var allowedGuardianIdsQuery = _dbContext.ChildGuardians.AsNoTracking()
+                .Join(_dbContext.Children.AsNoTracking().Where(c => c.IsActive && allowedGroupIds.Contains(c.CurrentClassGroupId)),
+                    cg => cg.ChildId, c => c.Id, (cg, c) => cg.GuardianId)
+                .Distinct();
+
+            query = query.Where(g => allowedGuardianIdsQuery.Contains(g.Id));
+        }
+
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            var normalized = term.Trim();
+            query = query.Where(x => x.FullName.Contains(normalized) || x.PhoneNumber.Contains(normalized));
+        }
+
+        var guardians = await query.OrderBy(x => x.FullName).Take(100).ToListAsync();
+        ViewBag.TermFilter = term;
+        return View(guardians);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SearchByPhone(string term)
+    {
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        var query = _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive);
+        if (User.IsInRole("Teacher"))
+        {
+            var allowedGroupIds = await GetAssignedGroupIdsAsync();
+            if (allowedGroupIds.Count == 0)
+            {
+                return Json(Array.Empty<object>());
+            }
+
+            var allowedGuardianIdsQuery = _dbContext.ChildGuardians.AsNoTracking()
+                .Join(_dbContext.Children.AsNoTracking().Where(c => c.IsActive && allowedGroupIds.Contains(c.CurrentClassGroupId)),
+                    cg => cg.ChildId, c => c.Id, (cg, c) => cg.GuardianId)
+                .Distinct();
+
+            query = query.Where(g => allowedGuardianIdsQuery.Contains(g.Id));
+        }
+
+        var normalized = term.Trim();
+        var data = await query
+            .Where(x => x.FullName.Contains(normalized) || x.PhoneNumber.Contains(normalized))
+            .OrderBy(x => x.FullName)
+            .Take(20)
+            .Select(x => new { x.Id, x.FullName, x.PhoneNumber })
+            .ToListAsync();
+
+        return Json(data);
+    }
+
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(new GuardianCreateViewModel { IsActive = true });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(GuardianCreateViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var exists = await _dbContext.Guardians.AnyAsync(x => x.PhoneNumber == model.PhoneNumber.Trim());
+        if (exists)
+        {
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un tutor con ese celular.");
+            return View(model);
+        }
+
+        _dbContext.Guardians.Add(new Guardian
+        {
+            FullName = model.FullName.Trim(),
+            PhoneNumber = model.PhoneNumber.Trim(),
+            SecondaryPhoneNumber = model.SecondaryPhoneNumber?.Trim(),
+            IsActive = model.IsActive,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _dbContext.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Tutor creado correctamente.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var guardian = await _dbContext.Guardians.FindAsync(id);
+        if (guardian is null) return NotFound();
+
+        return View(new GuardianCreateViewModel
+        {
+            Id = guardian.Id,
+            FullName = guardian.FullName,
+            PhoneNumber = guardian.PhoneNumber,
+            SecondaryPhoneNumber = guardian.SecondaryPhoneNumber,
+            IsActive = guardian.IsActive
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(GuardianCreateViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var guardian = await _dbContext.Guardians.FindAsync(model.Id);
+        if (guardian is null) return NotFound();
+
+        var duplicated = await _dbContext.Guardians.AnyAsync(x => x.Id != model.Id && x.PhoneNumber == model.PhoneNumber.Trim());
+        if (duplicated)
+        {
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Ya existe un tutor con ese celular.");
+            return View(model);
+        }
+
+        guardian.FullName = model.FullName.Trim();
+        guardian.PhoneNumber = model.PhoneNumber.Trim();
+        guardian.SecondaryPhoneNumber = model.SecondaryPhoneNumber?.Trim();
+        guardian.IsActive = model.IsActive;
+        guardian.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Tutor actualizado.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<HashSet<int>> GetAssignedGroupIdsAsync()
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new HashSet<int>();
+        }
+
+        return await _dbContext.TeacherClassGroups.AsNoTracking()
+            .Where(x => x.TeacherUserId == userId && x.IsActive)
+            .Select(x => x.ClassGroupId)
+            .ToHashSetAsync();
+    }
+}

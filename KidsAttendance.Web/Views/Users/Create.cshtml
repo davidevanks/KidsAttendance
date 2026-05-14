@@ -1,0 +1,9 @@
+@model KidsAttendance.Web.ViewModels.UserCreateViewModel
+@{
+    ViewData["Title"] = "Nuevo Usuario";
+}
+<h1 class="h4 mb-3">Nuevo Usuario</h1>
+<partial name="_UserForm" model="Model" />
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

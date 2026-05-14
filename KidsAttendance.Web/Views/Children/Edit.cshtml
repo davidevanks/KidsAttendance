@@ -1,0 +1,17 @@
+@model KidsAttendance.Web.ViewModels.ChildCreateViewModel
+@{
+    ViewData["Title"] = "Editar Niño";
+}
+<h1 class="h4 mb-3">Editar Niño</h1>
+<partial name="_ChildForm" model="Model" />
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/children-form.js" asp-append-version="true"></script>
+    <script>
+        $(function () {
+            $("form").on("submit", function () {
+                return confirm("¿Estás seguro de editar este niño?");
+            });
+        });
+    </script>
+}

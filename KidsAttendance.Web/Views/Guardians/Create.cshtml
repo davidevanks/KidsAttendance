@@ -1,0 +1,9 @@
+@model KidsAttendance.Web.ViewModels.GuardianCreateViewModel
+@{
+    ViewData["Title"] = "Nuevo Tutor";
+}
+<h1 class="h4 mb-3">Nuevo Tutor</h1>
+<partial name="_GuardianForm" model="Model" />
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "SnackTeam";
+    var items = ViewBag.Items as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
+    int total = ViewBag.Total ?? 0;
+}
+<h1 class="h4 mb-3">Conteo en Tiempo Real</h1>
+<div class="mb-2 small text-muted">Actualiza automáticamente cada 20 segundos.</div>
+<div class="card shadow-sm">
+    <div class="card-body" id="snackteam-count-container">
+        @foreach (var item in items)
+        {
+            <p class="mb-1"><strong>@item.Group:</strong> @item.Count</p>
+        }
+        <hr />
+        <p class="mb-0"><strong>Total general:</strong> <span id="snackteam-total">@total</span></p>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/reports.js" asp-append-version="true"></script>
+}

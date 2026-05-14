@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = "Dashboard Admin";
+}
+
+<div class="container py-4">
+    <h1 class="h4 mb-3">Panel de Administración</h1>
+    <p class="ka-muted mb-3">Accesos administrativos principales.</p>
+    <div class="ka-dashboard-grid">
+        <a asp-controller="ClassGroups" asp-action="Index" class="btn btn-primary ka-card-action">Grupos</a>
+        <a asp-controller="Users" asp-action="Index" class="btn btn-outline-secondary ka-card-action">Usuarios</a>
+        <a asp-controller="TeacherAssignments" asp-action="Index" class="btn btn-outline-secondary ka-card-action">Asignación de Maestros</a>
+        <a asp-controller="Guardians" asp-action="Index" class="btn btn-outline-secondary ka-card-action">Tutores</a>
+        <a asp-controller="Children" asp-action="Index" class="btn btn-outline-secondary ka-card-action">Niños</a>
+        <a asp-controller="Attendance" asp-action="Today" class="btn btn-outline-secondary ka-card-action">Asistencia</a>
+        <a asp-controller="Reports" asp-action="AttendanceByDay" class="btn btn-outline-secondary ka-card-action">Reportes</a>
+    </div>
+</div>

@@ -1,0 +1,36 @@
+@model IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Child>
+@{
+    ViewData["Title"] = "Niños";
+    var groups = ViewBag.Groups as Dictionary<int, string> ?? new();
+    var termFilter = ViewBag.TermFilter as string;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Niños</h1>
+    <a asp-action="Create" class="btn btn-primary">Nuevo niño</a>
+</div>
+@if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
+<form method="get" class="row g-2 mb-3">
+    <div class="col-12 col-md-6">
+        <input name="term" value="@termFilter" class="form-control form-control-lg" placeholder="Buscar por nombre de niño" />
+    </div>
+    <div class="col-12 col-md-2">
+        <button type="submit" class="btn btn-outline-primary btn-lg w-100">Buscar</button>
+    </div>
+</form>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Nombre</th><th>Edad</th><th>Grupo</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.FullName</td>
+                <td>@(item.Age?.ToString() ?? "-")</td>
+                <td>@groups.GetValueOrDefault(item.CurrentClassGroupId, $"Grupo #{item.CurrentClassGroupId}")</td>
+                <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span></td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Editar</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

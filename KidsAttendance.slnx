@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="KidsAttendance.Application/KidsAttendance.Application.csproj" />
+  <Project Path="KidsAttendance.Domain/KidsAttendance.Domain.csproj" />
+  <Project Path="KidsAttendance.Infrastructure/KidsAttendance.Infrastructure.csproj" />
+  <Project Path="KidsAttendance.Web/KidsAttendance.Web.csproj" />
+</Solution>

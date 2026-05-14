@@ -1,0 +1,33 @@
+@model KidsAttendance.Web.ViewModels.GuardianCreateViewModel
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="mb-3">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control form-control-lg" />
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PhoneNumber" class="form-label"></label>
+                <input asp-for="PhoneNumber" class="form-control form-control-lg" />
+                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="SecondaryPhoneNumber" class="form-label"></label>
+                <input asp-for="SecondaryPhoneNumber" class="form-control form-control-lg" />
+                <span asp-validation-for="SecondaryPhoneNumber" class="text-danger small"></span>
+            </div>
+            <div class="form-check mb-3">
+                <input asp-for="IsActive" class="form-check-input" />
+                <label asp-for="IsActive" class="form-check-label"></label>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Guardar</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
