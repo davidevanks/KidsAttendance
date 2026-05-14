@@ -1,8 +1,10 @@
 using KidsAttendance.Application.DTOs;
 using KidsAttendance.Application.Interfaces;
+using KidsAttendance.Infrastructure.Persistence;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
@@ -10,23 +12,45 @@ namespace KidsAttendance.Web.Controllers;
 public class ClassGroupsController : Controller
 {
     private readonly IClassGroupService _classGroupService;
+    private readonly KidsAttendanceDbContext _dbContext;
 
-    public ClassGroupsController(IClassGroupService classGroupService)
+    public ClassGroupsController(IClassGroupService classGroupService, KidsAttendanceDbContext dbContext)
     {
         _classGroupService = classGroupService;
+        _dbContext = dbContext;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var groups = await _classGroupService.GetAllAsync(cancellationToken);
+        var activeTeacherAssignments = await _dbContext.TeacherClassGroups
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .Join(
+                _dbContext.Users.AsNoTracking(),
+                assignment => assignment.TeacherUserId,
+                user => user.Id,
+                (assignment, user) => new { assignment.ClassGroupId, user.FullName })
+            .ToListAsync(cancellationToken);
+
+        var teacherNamesByGroup = activeTeacherAssignments
+            .GroupBy(x => x.ClassGroupId)
+            .ToDictionary(
+                group => group.Key,
+                group => string.Join(", ", group
+                    .Select(x => x.FullName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(name => name)));
+
         var model = groups.Select(x => new ClassGroupViewModel
         {
             Id = x.Id,
             Name = x.Name,
             MinAge = x.MinAge,
             MaxAge = x.MaxAge,
-            IsActive = x.IsActive
+            IsActive = x.IsActive,
+            AssignedTeachersText = teacherNamesByGroup.GetValueOrDefault(x.Id) ?? "Sin maestros asignados"
         }).ToList();
 
         return View(model);

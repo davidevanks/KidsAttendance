@@ -1,12 +1,12 @@
 @model KidsAttendance.Web.ViewModels.TeacherAssignmentViewModel
 @{
-    ViewData["Title"] = "Asignación de Maestros";
+    ViewData["Title"] = "Asignación de Maestros a Grupos";
     var teachers = ViewBag.Teachers as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.AppUser> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.AppUser>();
     var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
     var assignments = ViewBag.Assignments as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.TeacherClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.TeacherClassGroup>();
 }
 
-<h1 class="h4 mb-3">Asignación de Maestros</h1>
+<h1 class="h4 mb-3">Asignación de Maestros a Grupos</h1>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 @if (TempData["ErrorMessage"] is string errorMessage) { <div class="alert alert-danger">@errorMessage</div> }
 

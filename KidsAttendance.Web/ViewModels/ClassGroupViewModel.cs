@@ -21,4 +21,6 @@ public class ClassGroupViewModel
 
     [Display(Name = "Activo")]
     public bool IsActive { get; set; } = true;
+
+    public string AssignedTeachersText { get; set; } = "Sin maestros asignados";
 }

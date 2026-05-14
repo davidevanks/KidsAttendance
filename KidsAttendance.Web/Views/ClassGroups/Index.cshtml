@@ -27,6 +27,7 @@
                     <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span>
                 </div>
                 <div class="text-muted small mt-1">Edades: @item.MinAge - @item.MaxAge</div>
+                <div class="text-muted small">Maestros: @item.AssignedTeachersText</div>
                 <div class="d-flex gap-2 mt-3">
                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Editar</a>
                     <form asp-action="ToggleActive" method="post">
@@ -48,6 +49,7 @@
                 <th>Nombre</th>
                 <th>Edad mínima</th>
                 <th>Edad máxima</th>
+                <th>Maestros</th>
                 <th>Estado</th>
                 <th class="text-end">Acciones</th>
             </tr>
@@ -59,6 +61,7 @@
                 <td>@item.Name</td>
                 <td>@item.MinAge</td>
                 <td>@item.MaxAge</td>
+                <td>@item.AssignedTeachersText</td>
                 <td>
                     <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span>
                 </td>
