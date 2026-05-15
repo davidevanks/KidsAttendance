@@ -14,7 +14,7 @@
 <div class="table-responsive">
     <table class="table table-striped align-middle">
         <thead>
-            <tr><th>Nombre</th><th>Rol</th><th>Correo</th><th>Celular</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+            <tr><th>Nombre</th><th>Rol</th><th>Asistencia Global</th><th>Correo</th><th>Celular</th><th>Estado</th><th class="text-end">Acciones</th></tr>
         </thead>
         <tbody>
         @foreach (var item in Model)
@@ -22,6 +22,16 @@
             <tr>
                 <td>@item.FullName</td>
                 <td>@(userRoles.GetValueOrDefault(item.Id) ?? "-")</td>
+                <td>
+                    @if (userRoles.GetValueOrDefault(item.Id) == "Teacher")
+                    {
+                        <span class="badge @(item.AsistenciaGlobal ? "text-bg-info" : "text-bg-light")">@(item.AsistenciaGlobal ? "Sí" : "No")</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">-</span>
+                    }
+                </td>
                 <td>@item.Email</td>
                 <td>@(string.IsNullOrWhiteSpace(item.PhoneNumber) ? "-" : item.PhoneNumber)</td>
                 <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span></td>

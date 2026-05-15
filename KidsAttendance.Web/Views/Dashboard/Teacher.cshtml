@@ -1,10 +1,21 @@
 @{
     ViewData["Title"] = "Dashboard Maestro";
+    var hasAsistenciaGlobal = (ViewBag.HasAsistenciaGlobal as bool?) == true;
 }
 
 <div class="container py-4">
     <h1 class="h4 mb-3">Panel Maestro</h1>
     <p class="ka-muted mb-3">Flujos rápidos para uso desde celular.</p>
+    @if (hasAsistenciaGlobal)
+    {
+        <h2 class="h5 mt-4 mb-3">Asistencia Global</h2>
+        <div class="d-grid gap-2 mb-4">
+            <a asp-controller="Attendance" asp-action="GlobalCheckIn" class="btn btn-success btn-lg">Registrar Entrada Global</a>
+            <a asp-controller="Attendance" asp-action="GlobalCheckOut" class="btn btn-outline-success btn-lg">Registrar Salida Global</a>
+            <a asp-controller="Attendance" asp-action="GlobalToday" class="btn btn-outline-success btn-lg">Asistencia Global</a>
+        </div>
+        <h2 class="h5 mt-3 mb-3">Mi Grupo</h2>
+    }
     <div class="d-grid gap-2">
         <a asp-controller="Attendance" asp-action="CheckIn" class="btn btn-primary btn-lg">Registrar Entrada</a>
         <a asp-controller="Attendance" asp-action="CheckOut" class="btn btn-outline-primary btn-lg">Registrar Salida</a>

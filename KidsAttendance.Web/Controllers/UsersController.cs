@@ -113,6 +113,7 @@ public class UsersController : Controller
             Email = user.Email ?? string.Empty,
             PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
+            AsistenciaGlobal = user.AsistenciaGlobal,
             Role = roles.FirstOrDefault() ?? "Teacher"
         });
     }
@@ -149,6 +150,7 @@ public class UsersController : Controller
         user.NormalizedUserName = model.Email.Trim().ToUpperInvariant();
         user.PhoneNumber = normalizedPhone;
         user.IsActive = model.IsActive;
+        user.AsistenciaGlobal = model.Role == "Teacher" && model.AsistenciaGlobal;
         user.UpdatedAt = DateTime.UtcNow;
 
         var updateResult = await _userManager.UpdateAsync(user);

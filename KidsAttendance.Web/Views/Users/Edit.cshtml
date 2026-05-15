@@ -31,4 +31,15 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(function () {
+            var roleSelect = $("#Role");
+            var asistenciaGlobalCheck = $(".ka-asistencia-global-check");
+            function toggleAsistenciaGlobal() {
+                asistenciaGlobalCheck.toggle(roleSelect.val() === "Teacher");
+            }
+            roleSelect.on("change", toggleAsistenciaGlobal);
+            toggleAsistenciaGlobal();
+        });
+    </script>
 }

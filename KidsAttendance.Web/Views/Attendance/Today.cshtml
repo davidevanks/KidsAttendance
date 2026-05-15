@@ -4,6 +4,8 @@
     var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
     var isTeacher = (ViewBag.IsTeacher as bool?) == true;
     var isAdmin = (ViewBag.IsAdmin as bool?) == true;
+    var isGlobalAttendance = (ViewBag.IsGlobalAttendance as bool?) == true;
+    var showGroup = isAdmin || isGlobalAttendance;
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
     var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
     int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
@@ -17,7 +19,7 @@
 <form method="get" class="row g-2 mb-3">
     <div class="col-6"><input type="date" name="date" value="@(((DateTime?)ViewBag.Date ?? DateTime.Today).ToString("yyyy-MM-dd"))" class="form-control form-control-lg" /></div>
     <div class="col-6">
-        @if (isTeacher)
+        @if (isTeacher && !isGlobalAttendance)
         {
             <select class="form-select form-select-lg" disabled>
                 <option value="@teacherFixedGroup?.Id">@teacherFixedGroup?.Name</option>
@@ -50,7 +52,7 @@
     <table class="table table-striped align-middle">
         <thead>
             <tr>
-                @if (isAdmin)
+                @if (showGroup)
                 {
                     <th>Grupo</th>
                 }
@@ -61,7 +63,7 @@
         @foreach (var r in rows)
         {
             <tr>
-                @if (isAdmin)
+                @if (showGroup)
                 {
                     <td>@r.ClassGroupName</td>
                 }

@@ -24,6 +24,9 @@ public class UserCreateViewModel
     [Display(Name = "Activo")]
     public bool IsActive { get; set; } = true;
 
+    [Display(Name = "Asistencia Global")]
+    public bool AsistenciaGlobal { get; set; } = false;
+
     [Display(Name = "Rol")]
     public string Role { get; set; } = "Teacher";
 

@@ -30,6 +30,7 @@ public partial class KidsAttendanceDbContext : IdentityDbContext<AppUser, AppRol
             entity.Property(x => x.Email).HasMaxLength(256).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(30);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
+            entity.Property(x => x.AsistenciaGlobal).HasDefaultValue(false);
             entity.Property(x => x.CreatedAt).HasDefaultValueSql("SYSDATETIME()");
             entity.HasIndex(x => x.PhoneNumber)
                 .IsUnique()
