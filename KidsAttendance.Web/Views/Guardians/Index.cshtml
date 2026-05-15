@@ -1,7 +1,6 @@
 @model IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Guardian>
 @{
     ViewData["Title"] = "Padres";
-    var termFilter = ViewBag.TermFilter as string;
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -10,17 +9,9 @@
 </div>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 @if (teacherNoGroup) { <div class="alert alert-warning">No tenés grupo activo asignado.</div> }
-<form method="get" class="row g-2 mb-3">
-    <div class="col-12 col-md-6">
-        <input name="term" value="@termFilter" class="form-control form-control-lg" placeholder="Buscar por nombre o celular" />
-    </div>
-    <div class="col-12 col-md-2">
-        <button type="submit" class="btn btn-outline-primary btn-lg w-100">Buscar</button>
-    </div>
-</form>
 <div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <thead><tr><th>Nombre</th><th>Celular</th><th>Secundario</th><th>Estado</th><th></th></tr></thead>
+    <table class="js-datatable table table-striped align-middle">
+        <thead><tr><th data-priority="1">Nombre</th><th data-priority="1">Celular</th><th data-priority="3">Secundario</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Editar</th></tr></thead>
         <tbody>
         @foreach (var item in Model)
         {

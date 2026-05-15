@@ -40,3 +40,21 @@ body {
 .ka-muted {
   color: #6c757d;
 }
+
+@media (max-width: 767px) {
+  .dataTables_filter input[type="search"] {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .dataTables_paginate .paginate_button {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 6px 10px;
+  }
+
+  table.dataTable.dtr-column > tbody > tr > td.control:before,
+  table.dataTable.dtr-column > tbody > tr > th.control:before {
+    line-height: 1.4;
+  }
+}

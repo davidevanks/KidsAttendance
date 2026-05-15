@@ -21,7 +21,7 @@ public class GuardiansController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? term)
+    public async Task<IActionResult> Index()
     {
         var query = _dbContext.Guardians.AsNoTracking().AsQueryable();
 
@@ -30,7 +30,6 @@ public class GuardiansController : Controller
             var allowedGroupIds = await GetAssignedGroupIdsAsync();
             if (allowedGroupIds.Count == 0)
             {
-                ViewBag.TermFilter = term;
                 ViewBag.TeacherNoGroup = true;
                 return View(new List<Guardian>());
             }
@@ -43,14 +42,7 @@ public class GuardiansController : Controller
             query = query.Where(g => allowedGuardianIdsQuery.Contains(g.Id));
         }
 
-        if (!string.IsNullOrWhiteSpace(term))
-        {
-            var normalized = term.Trim();
-            query = query.Where(x => x.FullName.Contains(normalized) || x.PhoneNumber.Contains(normalized));
-        }
-
-        var guardians = await query.OrderBy(x => x.FullName).Take(100).ToListAsync();
-        ViewBag.TermFilter = term;
+        var guardians = await query.OrderBy(x => x.FullName).ToListAsync();
         return View(guardians);
     }
 

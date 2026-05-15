@@ -380,7 +380,7 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GlobalToday(DateTime? date, int? classGroupId, string? guardianName, string? guardianPhone, string? childName, string? status)
+    public async Task<IActionResult> GlobalToday(DateTime? date, int? classGroupId)
     {
         if (!await IsGlobalAttendanceAsync())
         {
@@ -393,12 +393,8 @@ public class AttendanceController : Controller
         ViewBag.IsTeacher = User.IsInRole("Teacher");
         ViewBag.IsAdmin = User.IsInRole("Admin");
         ViewBag.IsGlobalAttendance = true;
-        ViewBag.GuardianName = guardianName;
-        ViewBag.GuardianPhone = guardianPhone;
-        ViewBag.ChildName = childName;
         ViewBag.Groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
         ViewBag.SelectedClassGroupId = classGroupId;
-        ViewBag.SelectedStatus = status;
 
         if (session is null)
         {
@@ -410,10 +406,6 @@ public class AttendanceController : Controller
         if (classGroupId.HasValue)
         {
             query = query.Where(x => x.ClassGroupId == classGroupId.Value);
-        }
-        if (!string.IsNullOrWhiteSpace(status))
-        {
-            query = query.Where(x => x.Status == status);
         }
 
         var records = await query
@@ -473,22 +465,6 @@ public class AttendanceController : Controller
                 CheckOutSignaturePath = checkOutSignaturePath
             };
         }).ToList();
-
-        if (!string.IsNullOrWhiteSpace(guardianName))
-        {
-            var term = guardianName.Trim();
-            rows = rows.Where(x => x.GuardianName.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (!string.IsNullOrWhiteSpace(guardianPhone))
-        {
-            var term = guardianPhone.Trim();
-            rows = rows.Where(x => x.GuardianPhone.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (!string.IsNullOrWhiteSpace(childName))
-        {
-            var term = childName.Trim();
-            rows = rows.Where(x => x.ChildName.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
 
         ViewBag.Rows = rows;
         return View("Today");
@@ -577,17 +553,13 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Today(DateTime? date, int? classGroupId, string? guardianName, string? guardianPhone, string? childName, string? status)
+    public async Task<IActionResult> Today(DateTime? date, int? classGroupId)
     {
         var targetDate = date?.Date ?? DateTime.Today;
         var session = await _dbContext.AttendanceSessions.AsNoTracking().FirstOrDefaultAsync(x => x.SessionDate == targetDate);
         ViewBag.Date = targetDate;
         ViewBag.IsTeacher = User.IsInRole("Teacher");
         ViewBag.IsAdmin = User.IsInRole("Admin");
-        ViewBag.GuardianName = guardianName;
-        ViewBag.GuardianPhone = guardianPhone;
-        ViewBag.ChildName = childName;
-
         if (User.IsInRole("Teacher"))
         {
             var teacherGroup = await GetTeacherActiveGroupAsync();
@@ -609,7 +581,6 @@ public class AttendanceController : Controller
         }
 
         ViewBag.SelectedClassGroupId = classGroupId;
-        ViewBag.SelectedStatus = status;
 
         if (session is null)
         {
@@ -625,10 +596,6 @@ public class AttendanceController : Controller
         else if (classGroupId.HasValue)
         {
             query = query.Where(x => x.ClassGroupId == classGroupId.Value);
-        }
-        if (!string.IsNullOrWhiteSpace(status))
-        {
-            query = query.Where(x => x.Status == status);
         }
 
         var records = await query
@@ -688,22 +655,6 @@ public class AttendanceController : Controller
                 CheckOutSignaturePath = checkOutSignaturePath
             };
         }).ToList();
-
-        if (!string.IsNullOrWhiteSpace(guardianName))
-        {
-            var term = guardianName.Trim();
-            rows = rows.Where(x => x.GuardianName.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (!string.IsNullOrWhiteSpace(guardianPhone))
-        {
-            var term = guardianPhone.Trim();
-            rows = rows.Where(x => x.GuardianPhone.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (!string.IsNullOrWhiteSpace(childName))
-        {
-            var term = childName.Trim();
-            rows = rows.Where(x => x.ChildName.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
 
         ViewBag.Rows = rows;
         return View();

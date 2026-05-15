@@ -9,7 +9,6 @@
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
     var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
     int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
-    var selectedStatus = ViewBag.SelectedStatus as string;
 }
 <h1 class="h4 mb-3">Asistencia del Día</h1>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
@@ -18,7 +17,7 @@
     <div class="alert alert-warning">No tenés grupo activo asignado. Solicitá asignación al administrador.</div>
 }
 <form method="get" class="row g-2 mb-3">
-    <div class="col-6"><input type="date" name="date" value="@(((DateTime?)ViewBag.Date ?? DateTime.Today).ToString("yyyy-MM-dd"))" class="form-control form-control-lg" /></div>
+    <div class="col-6"><input type="date" name="date" value="@(((DateTime?)ViewBag.Date ?? DateTime.Today).ToString("yyyy-MM-dd"))" class="form-control form-control-lg" onchange="this.form.submit()" /></div>
     <div class="col-6">
         @if (isTeacher && !isGlobalAttendance)
         {
@@ -29,7 +28,7 @@
         }
         else
         {
-            <select name="classGroupId" class="form-select form-select-lg">
+            <select name="classGroupId" class="form-select form-select-lg" onchange="this.form.submit()">
                 <option value="">Todos los grupos</option>
                 @foreach (var g in groups)
                 {
@@ -38,33 +37,16 @@
             </select>
         }
     </div>
-    <div class="col-12 col-md-4">
-        <input name="guardianName" value="@(ViewBag.GuardianName as string)" class="form-control form-control-lg" placeholder="Nombre padre" />
-    </div>
-    <div class="col-12 col-md-4">
-        <input name="guardianPhone" value="@(ViewBag.GuardianPhone as string)" class="form-control form-control-lg" placeholder="Teléfono padre" />
-    </div>
-    <div class="col-12 col-md-3">
-        <input name="childName" value="@(ViewBag.ChildName as string)" class="form-control form-control-lg" placeholder="Nombre niño" />
-    </div>
-    <div class="col-12 col-md-3">
-        <select name="status" class="form-select form-select-lg">
-            <option value="">Todos los estados</option>
-            <option value="CheckedIn" selected="@(selectedStatus == "CheckedIn" ? "selected" : null)">Presente</option>
-            <option value="CheckedOut" selected="@(selectedStatus == "CheckedOut" ? "selected" : null)">Retirado</option>
-        </select>
-    </div>
-    <div class="col-12"><button class="btn btn-outline-primary btn-lg w-100">Aplicar filtros</button></div>
 </form>
 <div class="table-responsive">
-    <table class="table table-striped align-middle">
+    <table class="js-datatable table table-striped align-middle" id="attendance-table">
         <thead>
             <tr>
                 @if (showGroup)
                 {
-                    <th>Grupo</th>
+                    <th data-priority="2">Grupo</th>
                 }
-                <th>Nombre padre</th><th>Teléfono padre</th><th>Nombre niño</th><th>Ficha</th><th>Status</th><th>Firma entrada</th><th>Firma salida</th>
+                <th data-priority="1">Nombre padre</th><th data-priority="5">Telefono padre</th><th data-priority="1">Nombre nino</th><th data-priority="3">Ficha</th><th data-priority="1">Status</th><th data-priority="5">Firma entrada</th><th data-priority="5">Firma salida</th>
             </tr>
         </thead>
         <tbody>
@@ -83,7 +65,7 @@
                 <td>
                     @if (!string.IsNullOrWhiteSpace(r.CheckInSignaturePath))
                     {
-                        <img src="@r.CheckInSignaturePath" alt="Firma entrada padre" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" />
+                        <img src="@r.CheckInSignaturePath" alt="Firma entrada padre" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" loading="lazy" />
                     }
                     else
                     {
@@ -93,7 +75,7 @@
                 <td>
                     @if (!string.IsNullOrWhiteSpace(r.CheckOutSignaturePath))
                     {
-                        <img src="@r.CheckOutSignaturePath" alt="Firma salida padre" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" />
+                        <img src="@r.CheckOutSignaturePath" alt="Firma salida padre" class="img-fluid border rounded" style="max-width: 140px; max-height: 80px;" loading="lazy" />
                     }
                     else
                     {

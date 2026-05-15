@@ -12,9 +12,9 @@
     <div class="alert alert-success">@successMessage</div>
 }
 <div class="table-responsive">
-    <table class="table table-striped align-middle">
+    <table class="js-datatable table table-striped align-middle">
         <thead>
-            <tr><th>Nombre</th><th>Rol</th><th>Asistencia Global</th><th>Correo</th><th>Celular</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+            <tr><th data-priority="1">Nombre</th><th data-priority="2">Rol</th><th data-priority="5">Asistencia Global</th><th data-priority="4">Correo</th><th data-priority="4">Celular</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Acciones</th></tr>
         </thead>
         <tbody>
         @foreach (var item in Model)

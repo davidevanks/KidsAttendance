@@ -22,7 +22,7 @@ public class ChildrenController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? term)
+    public async Task<IActionResult> Index()
     {
         var query = _dbContext.Children.AsNoTracking();
         if (User.IsInRole("Teacher"))
@@ -30,16 +30,10 @@ public class ChildrenController : Controller
             var allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(x => allowedGroups.Contains(x.CurrentClassGroupId));
         }
-        if (!string.IsNullOrWhiteSpace(term))
-        {
-            var normalized = term.Trim();
-            query = query.Where(x => x.FullName.Contains(normalized));
-        }
 
-        var children = await query.OrderBy(x => x.FullName).Take(200).ToListAsync();
+        var children = await query.OrderBy(x => x.FullName).ToListAsync();
         var groups = await _dbContext.ClassGroups.AsNoTracking().ToDictionaryAsync(x => x.Id, x => x.Name);
         ViewBag.Groups = groups;
-        ViewBag.TermFilter = term;
         return View(children);
     }
 
