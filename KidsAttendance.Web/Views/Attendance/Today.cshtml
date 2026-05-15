@@ -9,6 +9,7 @@
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
     var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
     int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
+    var selectedStatus = ViewBag.SelectedStatus as string;
 }
 <h1 class="h4 mb-3">Asistencia del Día</h1>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
@@ -43,8 +44,15 @@
     <div class="col-12 col-md-4">
         <input name="guardianPhone" value="@(ViewBag.GuardianPhone as string)" class="form-control form-control-lg" placeholder="Teléfono padre" />
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
         <input name="childName" value="@(ViewBag.ChildName as string)" class="form-control form-control-lg" placeholder="Nombre niño" />
+    </div>
+    <div class="col-12 col-md-3">
+        <select name="status" class="form-select form-select-lg">
+            <option value="">Todos los estados</option>
+            <option value="CheckedIn" selected="@(selectedStatus == "CheckedIn" ? "selected" : null)">Presente</option>
+            <option value="CheckedOut" selected="@(selectedStatus == "CheckedOut" ? "selected" : null)">Retirado</option>
+        </select>
     </div>
     <div class="col-12"><button class="btn btn-outline-primary btn-lg w-100">Aplicar filtros</button></div>
 </form>

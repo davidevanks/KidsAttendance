@@ -308,7 +308,7 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GlobalToday(DateTime? date, int? classGroupId, string? guardianName, string? guardianPhone, string? childName)
+    public async Task<IActionResult> GlobalToday(DateTime? date, int? classGroupId, string? guardianName, string? guardianPhone, string? childName, string? status)
     {
         if (!await IsGlobalAttendanceAsync())
         {
@@ -326,6 +326,7 @@ public class AttendanceController : Controller
         ViewBag.ChildName = childName;
         ViewBag.Groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
         ViewBag.SelectedClassGroupId = classGroupId;
+        ViewBag.SelectedStatus = status;
 
         if (session is null)
         {
@@ -337,6 +338,10 @@ public class AttendanceController : Controller
         if (classGroupId.HasValue)
         {
             query = query.Where(x => x.ClassGroupId == classGroupId.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(x => x.Status == status);
         }
 
         var records = await query
@@ -492,7 +497,7 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Today(DateTime? date, int? classGroupId, string? guardianName, string? guardianPhone, string? childName)
+    public async Task<IActionResult> Today(DateTime? date, int? classGroupId, string? guardianName, string? guardianPhone, string? childName, string? status)
     {
         var targetDate = date?.Date ?? DateTime.Today;
         var session = await _dbContext.AttendanceSessions.AsNoTracking().FirstOrDefaultAsync(x => x.SessionDate == targetDate);
@@ -524,6 +529,7 @@ public class AttendanceController : Controller
         }
 
         ViewBag.SelectedClassGroupId = classGroupId;
+        ViewBag.SelectedStatus = status;
 
         if (session is null)
         {
@@ -539,6 +545,10 @@ public class AttendanceController : Controller
         else if (classGroupId.HasValue)
         {
             query = query.Where(x => x.ClassGroupId == classGroupId.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(x => x.Status == status);
         }
 
         var records = await query
