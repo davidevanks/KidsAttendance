@@ -104,13 +104,17 @@ public class AttendanceController : Controller
         var selectedChildIds = model.ChildIds.Distinct().ToList();
         var normalizedToken = NormalizeToken(model.TokenNumber);
 
-        var existingChildIds = await _dbContext.AttendanceRecords.AsNoTracking()
+        var existingRecords = await _dbContext.AttendanceRecords
             .Where(x => x.AttendanceSessionId == session.Id && selectedChildIds.Contains(x.ChildId))
-            .Select(x => x.ChildId)
             .ToListAsync();
-        if (existingChildIds.Count > 0)
+
+        var alreadyCheckedInIds = existingRecords
+            .Where(x => x.Status == "CheckedIn")
+            .Select(x => x.ChildId)
+            .ToList();
+        if (alreadyCheckedInIds.Count > 0)
         {
-            ModelState.AddModelError(nameof(model.ChildIds), "Uno o más niños ya tienen asistencia registrada hoy.");
+            ModelState.AddModelError(nameof(model.ChildIds), "Uno o más niños ya están presentes.");
             return View(model);
         }
 
@@ -120,21 +124,41 @@ public class AttendanceController : Controller
             var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
             var now = DateTime.UtcNow;
 
+            var existingRecordMap = existingRecords.ToDictionary(x => x.ChildId);
+
             foreach (var childId in selectedChildIds)
             {
-                _dbContext.AttendanceRecords.Add(new AttendanceRecord
+                if (existingRecordMap.TryGetValue(childId, out var existing))
                 {
-                    AttendanceSessionId = session.Id,
-                    ChildId = childId,
-                    ClassGroupId = model.ClassGroupId,
-                    TokenNumber = normalizedToken,
-                    CheckInGuardianId = model.GuardianId,
-                    CheckInTeacherId = userId,
-                    CheckInTime = now,
-                    CheckInSignatureData = checkInSignatureData,
-                    Status = "CheckedIn",
-                    CreatedAt = now
-                });
+                    existing.CheckInGuardianId = model.GuardianId;
+                    existing.CheckInTeacherId = userId;
+                    existing.CheckInTime = now;
+                    existing.CheckInSignatureData = checkInSignatureData;
+                    existing.TokenNumber = normalizedToken;
+                    existing.CheckOutGuardianId = null;
+                    existing.CheckOutTeacherId = null;
+                    existing.CheckOutTime = null;
+                    existing.CheckOutSignatureData = null;
+                    existing.CheckOutSignaturePath = null;
+                    existing.Status = "CheckedIn";
+                    existing.UpdatedAt = now;
+                }
+                else
+                {
+                    _dbContext.AttendanceRecords.Add(new AttendanceRecord
+                    {
+                        AttendanceSessionId = session.Id,
+                        ChildId = childId,
+                        ClassGroupId = model.ClassGroupId,
+                        TokenNumber = normalizedToken,
+                        CheckInGuardianId = model.GuardianId,
+                        CheckInTeacherId = userId,
+                        CheckInTime = now,
+                        CheckInSignatureData = checkInSignatureData,
+                        Status = "CheckedIn",
+                        CreatedAt = now
+                    });
+                }
             }
 
             await _dbContext.SaveChangesAsync();
@@ -203,13 +227,17 @@ public class AttendanceController : Controller
         var selectedChildIds = model.ChildIds.Distinct().ToList();
         var normalizedToken = NormalizeToken(model.TokenNumber);
 
-        var existingChildIds = await _dbContext.AttendanceRecords.AsNoTracking()
+        var existingRecords = await _dbContext.AttendanceRecords
             .Where(x => x.AttendanceSessionId == session.Id && selectedChildIds.Contains(x.ChildId))
-            .Select(x => x.ChildId)
             .ToListAsync();
-        if (existingChildIds.Count > 0)
+
+        var alreadyCheckedInIds = existingRecords
+            .Where(x => x.Status == "CheckedIn")
+            .Select(x => x.ChildId)
+            .ToList();
+        if (alreadyCheckedInIds.Count > 0)
         {
-            ModelState.AddModelError(nameof(model.ChildIds), "Uno o más niños ya tienen asistencia registrada hoy.");
+            ModelState.AddModelError(nameof(model.ChildIds), "Uno o más niños ya están presentes.");
             return View("CheckIn", model);
         }
 
@@ -219,21 +247,41 @@ public class AttendanceController : Controller
             var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
             var now = DateTime.UtcNow;
 
+            var existingRecordMap = existingRecords.ToDictionary(x => x.ChildId);
+
             foreach (var childId in selectedChildIds)
             {
-                _dbContext.AttendanceRecords.Add(new AttendanceRecord
+                if (existingRecordMap.TryGetValue(childId, out var existing))
                 {
-                    AttendanceSessionId = session.Id,
-                    ChildId = childId,
-                    ClassGroupId = model.ClassGroupId,
-                    TokenNumber = normalizedToken,
-                    CheckInGuardianId = model.GuardianId,
-                    CheckInTeacherId = userId,
-                    CheckInTime = now,
-                    CheckInSignatureData = checkInSignatureData,
-                    Status = "CheckedIn",
-                    CreatedAt = now
-                });
+                    existing.CheckInGuardianId = model.GuardianId;
+                    existing.CheckInTeacherId = userId;
+                    existing.CheckInTime = now;
+                    existing.CheckInSignatureData = checkInSignatureData;
+                    existing.TokenNumber = normalizedToken;
+                    existing.CheckOutGuardianId = null;
+                    existing.CheckOutTeacherId = null;
+                    existing.CheckOutTime = null;
+                    existing.CheckOutSignatureData = null;
+                    existing.CheckOutSignaturePath = null;
+                    existing.Status = "CheckedIn";
+                    existing.UpdatedAt = now;
+                }
+                else
+                {
+                    _dbContext.AttendanceRecords.Add(new AttendanceRecord
+                    {
+                        AttendanceSessionId = session.Id,
+                        ChildId = childId,
+                        ClassGroupId = model.ClassGroupId,
+                        TokenNumber = normalizedToken,
+                        CheckInGuardianId = model.GuardianId,
+                        CheckInTeacherId = userId,
+                        CheckInTime = now,
+                        CheckInSignatureData = checkInSignatureData,
+                        Status = "CheckedIn",
+                        CreatedAt = now
+                    });
+                }
             }
 
             await _dbContext.SaveChangesAsync();
