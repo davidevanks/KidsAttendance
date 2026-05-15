@@ -23,6 +23,9 @@ builder.Services
         options.Password.RequiredLength = 1;
         options.Password.RequiredUniqueChars = 1;
         options.User.RequireUniqueEmail = true;
+        options.Lockout.AllowedForNewUsers = false;
+        options.Lockout.MaxFailedAccessAttempts = int.MaxValue;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.Zero;
     })
     .AddRoles<AppRole>()
     .AddEntityFrameworkStores<KidsAttendanceDbContext>()
@@ -35,6 +38,7 @@ builder.Services
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
     });
 builder.Services.AddAuthorization();
 builder.Services.Configure<AdminSeedOptions>(builder.Configuration.GetSection(AdminSeedOptions.SectionName));
