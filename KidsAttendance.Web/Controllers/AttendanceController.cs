@@ -114,30 +114,38 @@ public class AttendanceController : Controller
             return View(model);
         }
 
-        var userId = _userManager.GetUserId(User) ?? string.Empty;
-        var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
-        var now = DateTime.UtcNow;
-
-        foreach (var childId in selectedChildIds)
+        try
         {
-            _dbContext.AttendanceRecords.Add(new AttendanceRecord
-            {
-                AttendanceSessionId = session.Id,
-                ChildId = childId,
-                ClassGroupId = model.ClassGroupId,
-                TokenNumber = normalizedToken,
-                CheckInGuardianId = model.GuardianId,
-                CheckInTeacherId = userId,
-                CheckInTime = now,
-                CheckInSignatureData = checkInSignatureData,
-                Status = "CheckedIn",
-                CreatedAt = now
-            });
-        }
+            var userId = _userManager.GetUserId(User) ?? string.Empty;
+            var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
+            var now = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Entrada registrada.";
-        return RedirectToAction(nameof(Today));
+            foreach (var childId in selectedChildIds)
+            {
+                _dbContext.AttendanceRecords.Add(new AttendanceRecord
+                {
+                    AttendanceSessionId = session.Id,
+                    ChildId = childId,
+                    ClassGroupId = model.ClassGroupId,
+                    TokenNumber = normalizedToken,
+                    CheckInGuardianId = model.GuardianId,
+                    CheckInTeacherId = userId,
+                    CheckInTime = now,
+                    CheckInSignatureData = checkInSignatureData,
+                    Status = "CheckedIn",
+                    CreatedAt = now
+                });
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Entrada registrada.";
+            return RedirectToAction(nameof(Today));
+        }
+        catch
+        {
+            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
+            return RedirectToAction(nameof(CheckIn));
+        }
     }
 
     [HttpGet]
@@ -205,30 +213,38 @@ public class AttendanceController : Controller
             return View("CheckIn", model);
         }
 
-        var userId = _userManager.GetUserId(User) ?? string.Empty;
-        var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
-        var now = DateTime.UtcNow;
-
-        foreach (var childId in selectedChildIds)
+        try
         {
-            _dbContext.AttendanceRecords.Add(new AttendanceRecord
-            {
-                AttendanceSessionId = session.Id,
-                ChildId = childId,
-                ClassGroupId = model.ClassGroupId,
-                TokenNumber = normalizedToken,
-                CheckInGuardianId = model.GuardianId,
-                CheckInTeacherId = userId,
-                CheckInTime = now,
-                CheckInSignatureData = checkInSignatureData,
-                Status = "CheckedIn",
-                CreatedAt = now
-            });
-        }
+            var userId = _userManager.GetUserId(User) ?? string.Empty;
+            var checkInSignatureData = _signatureService.DecodeBase64Signature(model.CheckInSignatureBase64);
+            var now = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Entrada registrada.";
-        return RedirectToAction(nameof(GlobalToday));
+            foreach (var childId in selectedChildIds)
+            {
+                _dbContext.AttendanceRecords.Add(new AttendanceRecord
+                {
+                    AttendanceSessionId = session.Id,
+                    ChildId = childId,
+                    ClassGroupId = model.ClassGroupId,
+                    TokenNumber = normalizedToken,
+                    CheckInGuardianId = model.GuardianId,
+                    CheckInTeacherId = userId,
+                    CheckInTime = now,
+                    CheckInSignatureData = checkInSignatureData,
+                    Status = "CheckedIn",
+                    CreatedAt = now
+                });
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Entrada registrada.";
+            return RedirectToAction(nameof(GlobalToday));
+        }
+        catch
+        {
+            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
+            return RedirectToAction(nameof(GlobalCheckIn));
+        }
     }
 
     [HttpGet]
@@ -287,24 +303,32 @@ public class AttendanceController : Controller
             return RedirectToAction(nameof(GlobalCheckOut));
         }
 
-        var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
-        var now = DateTime.UtcNow;
-        var teacherId = _userManager.GetUserId(User);
-
-        foreach (var record in records)
+        try
         {
-            record.CheckOutGuardianId = model.CheckOutGuardianId;
-            record.CheckOutTeacherId = teacherId;
-            record.CheckOutTime = now;
-            record.CheckOutSignatureData = checkOutSignatureData;
-            record.CheckOutSignaturePath = null;
-            record.Status = "CheckedOut";
-            record.UpdatedAt = now;
-        }
+            var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
+            var now = DateTime.UtcNow;
+            var teacherId = _userManager.GetUserId(User);
 
-        await _dbContext.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Salida registrada.";
-        return RedirectToAction(nameof(GlobalToday));
+            foreach (var record in records)
+            {
+                record.CheckOutGuardianId = model.CheckOutGuardianId;
+                record.CheckOutTeacherId = teacherId;
+                record.CheckOutTime = now;
+                record.CheckOutSignatureData = checkOutSignatureData;
+                record.CheckOutSignaturePath = null;
+                record.Status = "CheckedOut";
+                record.UpdatedAt = now;
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Salida registrada.";
+            return RedirectToAction(nameof(GlobalToday));
+        }
+        catch
+        {
+            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
+            return RedirectToAction(nameof(GlobalCheckOut));
+        }
     }
 
     [HttpGet]
@@ -476,24 +500,32 @@ public class AttendanceController : Controller
             return RedirectToAction(nameof(CheckOut));
         }
 
-        var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
-        var now = DateTime.UtcNow;
-        var teacherId = _userManager.GetUserId(User);
-
-        foreach (var record in records)
+        try
         {
-            record.CheckOutGuardianId = model.CheckOutGuardianId;
-            record.CheckOutTeacherId = teacherId;
-            record.CheckOutTime = now;
-            record.CheckOutSignatureData = checkOutSignatureData;
-            record.CheckOutSignaturePath = null;
-            record.Status = "CheckedOut";
-            record.UpdatedAt = now;
-        }
+            var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
+            var now = DateTime.UtcNow;
+            var teacherId = _userManager.GetUserId(User);
 
-        await _dbContext.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Salida registrada.";
-        return RedirectToAction(nameof(Today));
+            foreach (var record in records)
+            {
+                record.CheckOutGuardianId = model.CheckOutGuardianId;
+                record.CheckOutTeacherId = teacherId;
+                record.CheckOutTime = now;
+                record.CheckOutSignatureData = checkOutSignatureData;
+                record.CheckOutSignaturePath = null;
+                record.Status = "CheckedOut";
+                record.UpdatedAt = now;
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Salida registrada.";
+            return RedirectToAction(nameof(Today));
+        }
+        catch
+        {
+            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
+            return RedirectToAction(nameof(CheckOut));
+        }
     }
 
     [HttpGet]
