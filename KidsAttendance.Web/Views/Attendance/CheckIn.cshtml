@@ -39,7 +39,7 @@
                 <option value="">Buscar padre...</option>
             </select>
             <div class="d-flex gap-2 mb-3">
-                <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-secondary btn-sm">Padre no existe</button>
+                <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-info btn-sm">Agregar padre nuevo</button>
             </div>
 
             <div id="quick-guardian-panel" class="border rounded p-2 mb-3 d-none">
@@ -61,13 +61,8 @@
             <label asp-for="ChildIds" class="form-label">Niños</label>
             <select asp-for="ChildIds" id="ChildIds" class="form-select form-select-lg mb-2" multiple size="6"></select>
             <div class="small text-muted mb-2">Podés seleccionar uno o varios niños del mismo grupo.</div>
-
-            <label asp-for="TokenNumber" class="form-label">Ficha</label>
-            <input asp-for="TokenNumber" id="TokenNumber" class="form-control form-control-lg mb-1" placeholder="Se aplicará a todos los niños seleccionados" />
-            <div class="form-text mb-2">Si registrás varios hijos en este ingreso, todos usarán esta misma ficha.</div>
-            <span asp-validation-for="TokenNumber" class="text-danger small"></span>
             <div class="d-flex gap-2 mb-3">
-                <button id="btn-show-quick-child" type="button" class="btn btn-outline-secondary btn-sm">Agregar niño nuevo</button>
+                <button id="btn-show-quick-child" type="button" class="btn btn-outline-success btn-sm">Agregar niño nuevo</button>
             </div>
 
             <div id="quick-child-panel" class="border rounded p-2 mb-3 d-none">
@@ -86,12 +81,17 @@
                 <div id="quick-child-msg" class="small mt-2"></div>
             </div>
 
+            <label asp-for="TokenNumber" class="form-label">Ficha</label>
+            <input asp-for="TokenNumber" id="TokenNumber" class="form-control form-control-lg mb-1" placeholder="Se aplicará a todos los niños seleccionados" />
+            <div class="form-text mb-2">Si registrás varios hijos en este ingreso, todos usarán esta misma ficha.</div>
+            <span asp-validation-for="TokenNumber" class="text-danger small"></span>
+
             <div class="border rounded p-2 mb-2 bg-white">
                 <label class="form-label mb-1">Firma entrada (opcional)</label>
                 <canvas id="checkin-signature-pad" class="w-100" height="140"></canvas>
                 <input asp-for="CheckInSignatureBase64" type="hidden" id="CheckInSignatureBase64" />
                 <div class="mt-2 d-flex gap-2">
-                    <button type="button" id="btn-clear-checkin-signature" class="btn btn-outline-secondary btn-sm">Limpiar firma</button>
+                    <button type="button" id="btn-clear-checkin-signature" class="btn btn-outline-warning btn-sm">Limpiar firma</button>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100" @(checkInBlocked ? "disabled" : null)>Registrar</button>
