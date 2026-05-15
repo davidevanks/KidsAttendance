@@ -1,7 +1,8 @@
 @model KidsAttendance.Web.ViewModels.TeacherAssignmentViewModel
 @{
     ViewData["Title"] = "Asignación de Maestros a Grupos";
-    var teachers = ViewBag.Teachers as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.AppUser> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.AppUser>();
+    var allTeachers = ViewBag.AllTeachers as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.AppUser> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.AppUser>();
+    var availableTeachers = ViewBag.AvailableTeachers as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.AppUser> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.AppUser>();
     var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
     var assignments = ViewBag.Assignments as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.TeacherClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.TeacherClassGroup>();
 }
@@ -15,9 +16,9 @@
         <form asp-action="Assign" method="post" class="row g-2">
             @Html.AntiForgeryToken()
             <div class="col-12 col-md-5">
-                <select asp-for="TeacherUserId" class="form-select form-select-lg">
-                    <option value="">Seleccionar maestro</option>
-                    @foreach (var teacher in teachers)
+                <select asp-for="TeacherUserId" class="form-select form-select-lg js-teacher-select" data-placeholder="Buscar maestro por nombre...">
+                    <option value=""></option>
+                    @foreach (var teacher in availableTeachers)
                     {
                         <option value="@teacher.Id">@teacher.FullName (@teacher.Email)</option>
                     }
@@ -45,7 +46,7 @@
         <tbody>
         @foreach (var item in assignments)
         {
-            var teacher = teachers.FirstOrDefault(x => x.Id == item.TeacherUserId);
+            var teacher = allTeachers.FirstOrDefault(x => x.Id == item.TeacherUserId);
             var group = groups.FirstOrDefault(x => x.Id == item.ClassGroupId);
             <tr>
                 <td>@(teacher?.FullName ?? item.TeacherUserId)</td>
@@ -63,3 +64,22 @@
         </tbody>
     </table>
 </div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <script>
+        $(function () {
+            var $teacherSelect = $(".js-teacher-select");
+            if ($teacherSelect.length === 0 || !$.fn.select2) {
+                return;
+            }
+
+            $teacherSelect.select2({
+                theme: "bootstrap-5",
+                width: "100%",
+                placeholder: $teacherSelect.data("placeholder") || "Buscar maestro...",
+                allowClear: true
+            });
+        });
+    </script>
+}

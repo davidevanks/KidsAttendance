@@ -27,7 +27,11 @@ public class TeacherAssignmentsController : Controller
         var groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
         var assignments = await _dbContext.TeacherClassGroups.AsNoTracking().Where(x => x.IsActive).ToListAsync();
 
-        ViewBag.Teachers = teachers;
+        var assignedTeacherIds = assignments.Select(a => a.TeacherUserId).ToHashSet();
+        var availableTeachers = teachers.Where(t => !assignedTeacherIds.Contains(t.Id)).ToList();
+
+        ViewBag.AllTeachers = teachers;
+        ViewBag.AvailableTeachers = availableTeachers;
         ViewBag.Groups = groups;
         ViewBag.Assignments = assignments;
         return View(new TeacherAssignmentViewModel());
