@@ -4,10 +4,12 @@ namespace KidsAttendance.Web.ViewModels;
 
 public class CheckOutViewModel
 {
-    [Required]
+    [Required(ErrorMessage = "Seleccioná al menos un niño para registrar salida.")]
+    [MinLength(1, ErrorMessage = "Seleccioná al menos un niño para registrar salida.")]
     public List<int> RecordIds { get; set; } = new();
 
-    [Required]
+    [Required(ErrorMessage = "Seleccioná el padre que retira.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Seleccioná un padre válido.")]
     public int CheckOutGuardianId { get; set; }
     public string? CheckOutSignatureBase64 { get; set; }
 }

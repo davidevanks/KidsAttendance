@@ -33,12 +33,14 @@
                     <option value="">Grupo</option>
                     @foreach (var g in groups) { <option value="@g.Id">@g.Name</option> }
                 </select>
+                <span asp-validation-for="ClassGroupId" class="text-danger small"></span>
             }
 
             <label class="form-label">Padre (buscar por celular o nombre)</label>
             <select asp-for="GuardianId" id="GuardianId" class="form-select form-select-lg mb-2">
                 <option value="">Buscar padre...</option>
             </select>
+            <span asp-validation-for="GuardianId" class="text-danger small"></span>
             <div class="d-flex gap-2 mb-3">
                 <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-info btn-sm">Agregar padre nuevo</button>
             </div>
@@ -50,7 +52,7 @@
                         <input id="quick-guardian-name" class="form-control" placeholder="Nombre padre" />
                     </div>
                     <div class="col-12 col-md-4">
-                        <input id="quick-guardian-phone" class="form-control" placeholder="Celular padre" />
+                        <input id="quick-guardian-phone" class="form-control" inputmode="numeric" pattern="\d{8,15}" placeholder="Celular padre" />
                     </div>
                     <div class="col-12 col-md-2">
                         <button id="btn-quick-save-guardian" type="button" class="btn btn-primary w-100">Guardar</button>
@@ -61,6 +63,7 @@
 
             <label asp-for="ChildIds" class="form-label">Niños</label>
             <select asp-for="ChildIds" id="ChildIds" class="form-select form-select-lg mb-2" multiple size="6"></select>
+            <span asp-validation-for="ChildIds" class="text-danger small"></span>
             <div class="small text-muted mb-2">Podés seleccionar uno o varios niños del mismo grupo.</div>
             <div class="d-flex gap-2 mb-3">
                 <button id="btn-show-quick-child" type="button" class="btn btn-outline-success btn-sm">Agregar niño nuevo</button>

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace KidsAttendance.Web.Controllers;
 
@@ -789,7 +790,22 @@ public class AttendanceController : Controller
     {
         if (string.IsNullOrWhiteSpace(fullName))
         {
-            return BadRequest();
+            return BadRequest(new { success = false, message = "El nombre del niño es requerido." });
+        }
+
+        if (classGroupId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Seleccioná un grupo válido." });
+        }
+
+        if (guardianId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Seleccioná un padre válido." });
+        }
+
+        if (age.HasValue && (age.Value < 0 || age.Value > 20))
+        {
+            return BadRequest(new { success = false, message = "La edad debe estar entre 0 y 20." });
         }
 
         if (User.IsInRole("Teacher") && !await IsGlobalAttendanceAsync())
@@ -832,10 +848,15 @@ public class AttendanceController : Controller
     {
         if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phoneNumber))
         {
-            return BadRequest();
+            return BadRequest(new { success = false, message = "El nombre y el celular son requeridos." });
         }
 
         var normalizedPhone = phoneNumber.Trim();
+        if (!Regex.IsMatch(normalizedPhone, @"^\d{8,15}$"))
+        {
+            return BadRequest(new { success = false, message = "El celular debe contener solo números (8 a 15 dígitos)." });
+        }
+
         var existing = await _dbContext.Guardians.FirstOrDefaultAsync(x => x.PhoneNumber == normalizedPhone);
         if (existing is not null)
         {

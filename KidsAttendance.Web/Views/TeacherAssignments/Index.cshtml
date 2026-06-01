@@ -15,6 +15,7 @@
     <div class="card-body">
         <form asp-action="Assign" method="post" class="row g-2">
             @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             <div class="col-12 col-md-5">
                 <select asp-for="TeacherUserId" class="form-select form-select-lg js-teacher-select" data-placeholder="Buscar maestro por nombre...">
                     <option value=""></option>
@@ -23,6 +24,7 @@
                         <option value="@teacher.Id">@teacher.FullName (@teacher.UserName)</option>
                     }
                 </select>
+                <span asp-validation-for="TeacherUserId" class="text-danger small"></span>
             </div>
             <div class="col-12 col-md-5">
                 <select asp-for="ClassGroupId" class="form-select form-select-lg">
@@ -32,6 +34,7 @@
                         <option value="@group.Id">@group.Name</option>
                     }
                 </select>
+                <span asp-validation-for="ClassGroupId" class="text-danger small"></span>
             </div>
             <div class="col-12 col-md-2">
                 <button type="submit" class="btn btn-primary btn-lg w-100">Asignar</button>
@@ -82,4 +85,5 @@
             });
         });
     </script>
+    <partial name="_ValidationScriptsPartial" />
 }

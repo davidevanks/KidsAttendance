@@ -23,18 +23,7 @@ public class TeacherAssignmentsController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var teachers = await _userManager.GetUsersInRoleAsync("Teacher");
-        var groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
-        var assignments = await _dbContext.TeacherClassGroups.AsNoTracking().Where(x => x.IsActive).ToListAsync();
-
-        var assignedTeacherIds = assignments.Select(a => a.TeacherUserId).ToHashSet();
-        var availableTeachers = teachers.Where(t => !assignedTeacherIds.Contains(t.Id)).ToList();
-
-        ViewBag.AllTeachers = teachers;
-        ViewBag.AvailableTeachers = availableTeachers;
-        ViewBag.Groups = groups;
-        ViewBag.Assignments = assignments;
-        return View(new TeacherAssignmentViewModel());
+        return await BuildIndexViewAsync(new TeacherAssignmentViewModel());
     }
 
     [HttpPost]
@@ -43,7 +32,7 @@ public class TeacherAssignmentsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            return RedirectToAction(nameof(Index));
+            return await BuildIndexViewAsync(model);
         }
 
         var alreadyActive = await _dbContext.TeacherClassGroups.AnyAsync(x =>
@@ -95,5 +84,21 @@ public class TeacherAssignmentsController : Controller
         await _dbContext.SaveChangesAsync();
         TempData["SuccessMessage"] = "Asignación desactivada.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<IActionResult> BuildIndexViewAsync(TeacherAssignmentViewModel model)
+    {
+        var teachers = await _userManager.GetUsersInRoleAsync("Teacher");
+        var groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
+        var assignments = await _dbContext.TeacherClassGroups.AsNoTracking().Where(x => x.IsActive).ToListAsync();
+
+        var assignedTeacherIds = assignments.Select(a => a.TeacherUserId).ToHashSet();
+        var availableTeachers = teachers.Where(t => !assignedTeacherIds.Contains(t.Id)).ToList();
+
+        ViewBag.AllTeachers = teachers;
+        ViewBag.AvailableTeachers = availableTeachers;
+        ViewBag.Groups = groups;
+        ViewBag.Assignments = assignments;
+        return View("Index", model);
     }
 }

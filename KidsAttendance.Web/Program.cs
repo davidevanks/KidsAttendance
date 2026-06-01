@@ -9,7 +9,14 @@ using Microsoft.AspNetCore.Identity;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(_ => "Este campo es requerido.");
+    options.ModelBindingMessageProvider.SetValueIsInvalidAccessor(_ => "El valor ingresado no es válido.");
+    options.ModelBindingMessageProvider.SetAttemptedValueIsInvalidAccessor((value, field) => $"El valor '{value}' no es válido para {field}.");
+    options.ModelBindingMessageProvider.SetMissingBindRequiredValueAccessor(field => $"El campo {field} es obligatorio.");
+    options.ModelBindingMessageProvider.SetMissingKeyOrValueAccessor(() => "Se requiere un valor para este campo.");
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

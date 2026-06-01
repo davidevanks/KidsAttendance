@@ -17,7 +17,7 @@
             </div>
             <div class="mb-3">
                 <label asp-for="PhoneNumber" class="form-label"></label>
-                <input asp-for="PhoneNumber" class="form-control form-control-lg" />
+                <input asp-for="PhoneNumber" class="form-control form-control-lg" inputmode="numeric" pattern="\d{8,15}" />
                 <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
             </div>
             <div class="mb-3">

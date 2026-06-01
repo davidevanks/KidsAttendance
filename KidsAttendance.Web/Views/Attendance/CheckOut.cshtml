@@ -21,11 +21,13 @@
                     <option value="@row.RecordId" data-child-id="@row.ChildId">@row.ChildName - @row.GuardianName - @row.GuardianPhone @(string.IsNullOrWhiteSpace(row.TokenNumber) ? "" : $" - Ficha: {row.TokenNumber}")</option>
                 }
             </select>
+            <span asp-validation-for="RecordIds" class="text-danger small"></span>
 
             <label asp-for="CheckOutGuardianId" class="form-label">Padre que retira</label>
             <select asp-for="CheckOutGuardianId" id="CheckOutGuardianId" class="form-select form-select-lg mb-3">
                 <option value="">Seleccioná padre</option>
             </select>
+            <span asp-validation-for="CheckOutGuardianId" class="text-danger small"></span>
 
             <div class="border rounded p-2 mb-2 bg-white">
                 <label class="form-label mb-1">Firma salida (opcional)</label>

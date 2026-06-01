@@ -1,4 +1,5 @@
 $(function () {
+    var digitsOnlyPhonePattern = /^\d{8,15}$/;
     var signatureHandler = window.kidsAttendanceSignatures
         ? window.kidsAttendanceSignatures.initSignaturePad("checkin-signature-pad", "CheckInSignatureBase64", "btn-clear-checkin-signature")
         : null;
@@ -100,10 +101,14 @@ $(function () {
     });
 
     $("#btn-quick-save-guardian").on("click", function () {
-        var name = $("#quick-guardian-name").val();
-        var phone = $("#quick-guardian-phone").val();
+        var name = ($("#quick-guardian-name").val() || "").toString().trim();
+        var phone = ($("#quick-guardian-phone").val() || "").toString().trim();
         if (!name || !phone) {
             $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("Nombre y celular son requeridos.");
+            return;
+        }
+        if (!digitsOnlyPhonePattern.test(phone)) {
+            $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("El celular debe contener solo números (8 a 15 dígitos).");
             return;
         }
 
@@ -118,7 +123,8 @@ $(function () {
             }
         }).done(function (result) {
             if (!result || !result.success) {
-                $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("No se pudo guardar padre.");
+                var errorMessage = result && result.message ? result.message : "No se pudo guardar padre.";
+                $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
                 return;
             }
 
@@ -127,14 +133,19 @@ $(function () {
             guardianSelect.append(newOption).trigger("change");
             $("#quick-guardian-msg").removeClass("text-danger").addClass("text-success").text("Padre guardado.");
             $("#quick-guardian-panel").addClass("d-none");
+        }).fail(function (xhr) {
+            var response = xhr.responseJSON || {};
+            var errorMessage = response.message || "No se pudo guardar padre.";
+            $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
         });
     });
 
     $("#btn-quick-save-child").on("click", function () {
-        var fullName = $("#quick-child-name").val();
-        var age = $("#quick-child-age").val();
+        var fullName = ($("#quick-child-name").val() || "").toString().trim();
+        var ageRawValue = ($("#quick-child-age").val() || "").toString().trim();
         var guardianId = guardianSelect.val();
         var classGroupId = getClassGroupId();
+        var age = null;
 
         if (!guardianId) {
             $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("Seleccioná primero un padre.");
@@ -144,6 +155,13 @@ $(function () {
         if (!fullName || !classGroupId) {
             $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("Nombre de niño requerido.");
             return;
+        }
+        if (ageRawValue) {
+            age = parseInt(ageRawValue, 10);
+            if (Number.isNaN(age) || age < 0 || age > 20) {
+                $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("La edad debe ser un número entre 0 y 20.");
+                return;
+            }
         }
 
         $.ajax({
@@ -155,17 +173,22 @@ $(function () {
                 fullName: fullName,
                 classGroupId: classGroupId,
                 guardianId: guardianId,
-                age: age || null
+                age: age
             }
         }).done(function (result) {
             if (!result || !result.success) {
-                $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("No se pudo guardar niño.");
+                var errorMessage = result && result.message ? result.message : "No se pudo guardar niño.";
+                $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
                 return;
             }
 
             loadChildrenByGuardian(result.childId);
             $("#quick-child-msg").removeClass("text-danger").addClass("text-success").text("Niño guardado.");
             $("#quick-child-panel").addClass("d-none");
+        }).fail(function (xhr) {
+            var response = xhr.responseJSON || {};
+            var errorMessage = response.message || "No se pudo guardar niño.";
+            $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
         });
     });
 
