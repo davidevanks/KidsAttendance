@@ -27,7 +27,7 @@ public class AdminSeedService
     public async Task EnsureSeedAsync()
     {
         var options = _options.Value;
-        if (!options.Enabled || string.IsNullOrWhiteSpace(options.Email) || string.IsNullOrWhiteSpace(options.Password))
+        if (!options.Enabled || string.IsNullOrWhiteSpace(options.Account) || string.IsNullOrWhiteSpace(options.Password))
         {
             return;
         }
@@ -40,22 +40,23 @@ public class AdminSeedService
             }
         }
 
-        var email = options.Email.Trim();
-        var normalizedEmail = email.ToUpperInvariant();
-        var existingUser = await _userManager.FindByEmailAsync(email);
+        var account = options.Account.Trim();
+        var normalizedAccount = account.ToUpperInvariant();
+        var existingUser = await _userManager.FindByNameAsync(account);
         if (existingUser is not null)
         {
             return;
         }
 
+        var internalEmail = BuildInternalEmail(account);
         var user = new AppUser
         {
             Id = Guid.NewGuid().ToString(),
             FullName = options.FullName.Trim(),
-            Email = email,
-            NormalizedEmail = normalizedEmail,
-            UserName = email,
-            NormalizedUserName = normalizedEmail,
+            Email = internalEmail,
+            NormalizedEmail = internalEmail.ToUpperInvariant(),
+            UserName = account,
+            NormalizedUserName = normalizedAccount,
             EmailConfirmed = true,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
@@ -69,6 +70,11 @@ public class AdminSeedService
         }
 
         await _userManager.AddToRoleAsync(user, "Admin");
-        _logger.LogInformation("Usuario admin inicial creado: {Email}", email);
+        _logger.LogInformation("Usuario admin inicial creado: {Account}", account);
+    }
+
+    private static string BuildInternalEmail(string account)
+    {
+        return $"{account}@local.invalid";
     }
 }

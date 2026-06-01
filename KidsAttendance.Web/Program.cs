@@ -22,7 +22,8 @@ builder.Services
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequiredLength = 1;
         options.Password.RequiredUniqueChars = 1;
-        options.User.RequireUniqueEmail = true;
+        options.User.RequireUniqueEmail = false;
+        options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         options.Lockout.AllowedForNewUsers = false;
         options.Lockout.MaxFailedAccessAttempts = int.MaxValue;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.Zero;

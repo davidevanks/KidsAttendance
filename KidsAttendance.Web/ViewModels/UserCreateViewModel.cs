@@ -12,9 +12,9 @@ public class UserCreateViewModel
     public string FullName { get; set; } = string.Empty;
 
     [Required]
-    [EmailAddress]
-    [Display(Name = "Correo")]
-    public string Email { get; set; } = string.Empty;
+    [RegularExpression("^[a-zA-Z0-9]+$", ErrorMessage = "La cuenta solo permite letras y números.")]
+    [Display(Name = "Cuenta")]
+    public string Account { get; set; } = string.Empty;
 
     [StringLength(30)]
     [Phone]

@@ -57,6 +57,16 @@ public class UsersController : Controller
             return View(model);
         }
 
+        var account = model.Account.Trim();
+        var normalizedAccount = account.ToUpperInvariant();
+        var accountAlreadyExists = await _userManager.Users.AsNoTracking()
+            .AnyAsync(x => x.NormalizedUserName == normalizedAccount);
+        if (accountAlreadyExists)
+        {
+            ModelState.AddModelError(nameof(model.Account), "Ya existe un usuario con esa cuenta.");
+            return View(model);
+        }
+
         var normalizedPhone = NormalizePhoneNumber(model.PhoneNumber);
         if (!string.IsNullOrWhiteSpace(normalizedPhone))
         {
@@ -69,14 +79,15 @@ public class UsersController : Controller
             }
         }
 
+        var internalEmail = BuildInternalEmail(account);
         var user = new AppUser
         {
             Id = Guid.NewGuid().ToString(),
             FullName = model.FullName.Trim(),
-            Email = model.Email.Trim(),
-            UserName = model.Email.Trim(),
-            NormalizedEmail = model.Email.Trim().ToUpperInvariant(),
-            NormalizedUserName = model.Email.Trim().ToUpperInvariant(),
+            Email = internalEmail,
+            UserName = account,
+            NormalizedEmail = internalEmail.ToUpperInvariant(),
+            NormalizedUserName = normalizedAccount,
             PhoneNumber = normalizedPhone,
             EmailConfirmed = true,
             IsActive = model.IsActive,
@@ -110,7 +121,7 @@ public class UsersController : Controller
         {
             Id = user.Id,
             FullName = user.FullName,
-            Email = user.Email ?? string.Empty,
+            Account = user.UserName ?? string.Empty,
             PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
             AsistenciaGlobal = user.AsistenciaGlobal,
@@ -131,6 +142,16 @@ public class UsersController : Controller
         var user = await _userManager.FindByIdAsync(model.Id);
         if (user is null) return NotFound();
 
+        var account = model.Account.Trim();
+        var normalizedAccount = account.ToUpperInvariant();
+        var duplicatedAccount = await _userManager.Users.AsNoTracking()
+            .AnyAsync(x => x.Id != user.Id && x.NormalizedUserName == normalizedAccount);
+        if (duplicatedAccount)
+        {
+            ModelState.AddModelError(nameof(model.Account), "Ya existe un usuario con esa cuenta.");
+            return View(model);
+        }
+
         var normalizedPhone = NormalizePhoneNumber(model.PhoneNumber);
         if (!string.IsNullOrWhiteSpace(normalizedPhone))
         {
@@ -144,10 +165,11 @@ public class UsersController : Controller
         }
 
         user.FullName = model.FullName.Trim();
-        user.Email = model.Email.Trim();
-        user.UserName = model.Email.Trim();
-        user.NormalizedEmail = model.Email.Trim().ToUpperInvariant();
-        user.NormalizedUserName = model.Email.Trim().ToUpperInvariant();
+        var internalEmail = BuildInternalEmail(account);
+        user.Email = internalEmail;
+        user.UserName = account;
+        user.NormalizedEmail = internalEmail.ToUpperInvariant();
+        user.NormalizedUserName = normalizedAccount;
         user.PhoneNumber = normalizedPhone;
         user.IsActive = model.IsActive;
         user.AsistenciaGlobal = model.Role == "Teacher" && model.AsistenciaGlobal;
@@ -215,5 +237,10 @@ public class UsersController : Controller
         }
 
         return phoneNumber.Trim();
+    }
+
+    private static string BuildInternalEmail(string account)
+    {
+        return $"{account}@local.invalid";
     }
 }

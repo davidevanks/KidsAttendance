@@ -14,7 +14,7 @@
 <div class="table-responsive">
     <table class="js-datatable table table-striped align-middle">
         <thead>
-            <tr><th data-priority="1">Nombre</th><th data-priority="2">Rol</th><th data-priority="5">Asistencia Global</th><th data-priority="4">Correo</th><th data-priority="4">Celular</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Acciones</th></tr>
+            <tr><th data-priority="1">Nombre</th><th data-priority="2">Rol</th><th data-priority="5">Asistencia Global</th><th data-priority="4">Cuenta</th><th data-priority="4">Celular</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Acciones</th></tr>
         </thead>
         <tbody>
         @foreach (var item in Model)
@@ -32,7 +32,7 @@
                         <span class="text-muted">-</span>
                     }
                 </td>
-                <td>@item.Email</td>
+                <td>@item.UserName</td>
                 <td>@(string.IsNullOrWhiteSpace(item.PhoneNumber) ? "-" : item.PhoneNumber)</td>
                 <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span></td>
                 <td class="text-end"><a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Editar</a></td>

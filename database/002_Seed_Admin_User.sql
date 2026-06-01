@@ -4,7 +4,9 @@ GO
 USE [KidsAttendanceDb];
 GO
 
-DECLARE @AdminEmail NVARCHAR(256) = N'admin@kidsattendance.local';
+DECLARE @AdminAccount NVARCHAR(256) = N'admin';
+DECLARE @AdminNormalizedAccount NVARCHAR(256) = UPPER(@AdminAccount);
+DECLARE @AdminEmail NVARCHAR(256) = @AdminAccount + N'@local.invalid';
 DECLARE @AdminNormalizedEmail NVARCHAR(256) = UPPER(@AdminEmail);
 -- Password seed: Test123
 DECLARE @AdminPasswordHash NVARCHAR(MAX) = N'AQAAAAIAAYagAAAAEFIn8wS4Phahrao8UUoU0ap2VzEA6nWQJc+ZcYIBvVRCy81Y1Sj781thuF8RCvALAQ==';
@@ -24,7 +26,8 @@ END;
 
 SELECT @AdminId = Id
 FROM dbo.AspNetUsers
-WHERE NormalizedEmail = @AdminNormalizedEmail;
+WHERE NormalizedUserName = @AdminNormalizedAccount
+   OR NormalizedEmail = @AdminNormalizedEmail;
 
 IF @AdminId IS NULL
 BEGIN
@@ -53,8 +56,8 @@ BEGIN
     (
         @AdminId,
         N'Administrador General',
-        @AdminEmail,
-        @AdminNormalizedEmail,
+        @AdminAccount,
+        @AdminNormalizedAccount,
         @AdminEmail,
         @AdminNormalizedEmail,
         1,
@@ -77,8 +80,8 @@ BEGIN
         IsActive = 1,
         EmailConfirmed = 1,
         PasswordHash = @AdminPasswordHash,
-        UserName = @AdminEmail,
-        NormalizedUserName = @AdminNormalizedEmail,
+        UserName = @AdminAccount,
+        NormalizedUserName = @AdminNormalizedAccount,
         Email = @AdminEmail,
         NormalizedEmail = @AdminNormalizedEmail,
         UpdatedAt = SYSDATETIME()

@@ -41,7 +41,8 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var user = await _userManager.FindByEmailAsync(model.Email.Trim());
+        var account = model.Account.Trim();
+        var user = await _userManager.FindByNameAsync(account);
         if (user is null || !user.IsActive)
         {
             ModelState.AddModelError(string.Empty, "Credenciales inválidas.");

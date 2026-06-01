@@ -4,10 +4,10 @@ namespace KidsAttendance.Web.ViewModels;
 
 public class LoginViewModel
 {
-    [Required(ErrorMessage = "El correo es requerido.")]
-    [EmailAddress(ErrorMessage = "El correo no es válido.")]
-    [Display(Name = "Correo")]
-    public string Email { get; set; } = string.Empty;
+    [Required(ErrorMessage = "La cuenta es requerida.")]
+    [RegularExpression("^[a-zA-Z0-9]+$", ErrorMessage = "La cuenta solo permite letras y números.")]
+    [Display(Name = "Cuenta")]
+    public string Account { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es requerida.")]
     [DataType(DataType.Password)]
