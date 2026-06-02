@@ -31,7 +31,7 @@ public class GuardiansController : Controller
             if (allowedGroupIds.Count == 0)
             {
                 ViewBag.TeacherNoGroup = true;
-                return View(new List<Guardian>());
+                return View(new List<GuardianIndexViewModel>());
             }
 
             var allowedGuardianIdsQuery = _dbContext.ChildGuardians.AsNoTracking()
@@ -42,7 +42,46 @@ public class GuardiansController : Controller
             query = query.Where(g => allowedGuardianIdsQuery.Contains(g.Id));
         }
 
-        var guardians = await query.OrderBy(x => x.FullName).ToListAsync();
+        var guardians = await query
+            .OrderBy(x => x.FullName)
+            .Select(x => new GuardianIndexViewModel
+            {
+                Id = x.Id,
+                FullName = x.FullName,
+                PhoneNumber = x.PhoneNumber,
+                SecondaryPhoneNumber = x.SecondaryPhoneNumber,
+                IsActive = x.IsActive
+            })
+            .ToListAsync();
+
+        var guardianIds = guardians.Select(x => x.Id).ToList();
+        var childrenByGuardian = await _dbContext.ChildGuardians.AsNoTracking()
+            .Where(x => guardianIds.Contains(x.GuardianId))
+            .Join(
+                _dbContext.Children.AsNoTracking(),
+                childGuardian => childGuardian.ChildId,
+                child => child.Id,
+                (childGuardian, child) => new
+                {
+                    childGuardian.GuardianId,
+                    ChildName = child.FullName
+                })
+            .ToListAsync();
+
+        var childrenTextByGuardian = childrenByGuardian
+            .GroupBy(x => x.GuardianId)
+            .ToDictionary(
+                group => group.Key,
+                group => string.Join(", ", group
+                    .Select(x => x.ChildName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(name => name)));
+
+        foreach (var guardian in guardians)
+        {
+            guardian.ChildrenText = childrenTextByGuardian.GetValueOrDefault(guardian.Id) ?? "-";
+        }
+
         return View(guardians);
     }
 

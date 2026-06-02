@@ -1,4 +1,4 @@
-@model IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Guardian>
+@model IReadOnlyList<KidsAttendance.Web.ViewModels.GuardianIndexViewModel>
 @{
     ViewData["Title"] = "Padres";
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
@@ -11,12 +11,13 @@
 @if (teacherNoGroup) { <div class="alert alert-warning">No tenés grupo activo asignado.</div> }
 <div class="table-responsive">
     <table class="js-datatable table table-striped align-middle">
-        <thead><tr><th data-priority="1">Nombre</th><th data-priority="1">Celular</th><th data-priority="3">Secundario</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Editar</th></tr></thead>
+        <thead><tr><th data-priority="1">Nombre</th><th data-priority="2">Niños</th><th data-priority="1">Celular</th><th data-priority="3">Secundario</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Editar</th></tr></thead>
         <tbody>
         @foreach (var item in Model)
         {
             <tr>
                 <td>@item.FullName</td>
+                <td>@item.ChildrenText</td>
                 <td>@item.PhoneNumber</td>
                 <td>@item.SecondaryPhoneNumber</td>
                 <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span></td>

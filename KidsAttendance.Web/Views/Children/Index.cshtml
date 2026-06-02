@@ -1,4 +1,4 @@
-@model IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Child>
+@model IReadOnlyList<KidsAttendance.Web.ViewModels.ChildIndexViewModel>
 @{
     ViewData["Title"] = "Niños";
     var groups = ViewBag.Groups as Dictionary<int, string> ?? new();
@@ -10,12 +10,14 @@
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 <div class="table-responsive">
     <table class="js-datatable table table-striped align-middle">
-        <thead><tr><th data-priority="1">Nombre</th><th data-priority="4">Edad</th><th data-priority="2">Grupo</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Editar</th></tr></thead>
+        <thead><tr><th data-priority="1">Nombre</th><th data-priority="2">Padres</th><th data-priority="2">Celular</th><th data-priority="4">Edad</th><th data-priority="3">Grupo</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Editar</th></tr></thead>
         <tbody>
         @foreach (var item in Model)
         {
             <tr>
                 <td>@item.FullName</td>
+                <td>@item.GuardiansText</td>
+                <td>@item.GuardianPhoneNumbersText</td>
                 <td>@(item.Age?.ToString() ?? "-")</td>
                 <td>@groups.GetValueOrDefault(item.CurrentClassGroupId, $"Grupo #{item.CurrentClassGroupId}")</td>
                 <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span></td>

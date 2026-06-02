@@ -31,9 +31,61 @@ public class ChildrenController : Controller
             query = query.Where(x => allowedGroups.Contains(x.CurrentClassGroupId));
         }
 
-        var children = await query.OrderBy(x => x.FullName).ToListAsync();
+        var children = await query
+            .OrderBy(x => x.FullName)
+            .Select(x => new ChildIndexViewModel
+            {
+                Id = x.Id,
+                FullName = x.FullName,
+                Age = x.Age,
+                CurrentClassGroupId = x.CurrentClassGroupId,
+                IsActive = x.IsActive
+            })
+            .ToListAsync();
+
+        var childIds = children.Select(x => x.Id).ToList();
+        var guardiansByChild = await _dbContext.ChildGuardians.AsNoTracking()
+            .Where(x => childIds.Contains(x.ChildId))
+            .Join(
+                _dbContext.Guardians.AsNoTracking(),
+                childGuardian => childGuardian.GuardianId,
+                guardian => guardian.Id,
+                (childGuardian, guardian) => new
+                {
+                    childGuardian.ChildId,
+                    GuardianName = guardian.FullName,
+                    GuardianPhoneNumber = guardian.PhoneNumber
+                })
+            .ToListAsync();
+
+        var guardianNamesByChild = guardiansByChild
+            .GroupBy(x => x.ChildId)
+            .ToDictionary(
+                group => group.Key,
+                group => string.Join(", ", group
+                    .Select(x => x.GuardianName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(name => name)));
+
+        var guardianPhonesByChild = guardiansByChild
+            .GroupBy(x => x.ChildId)
+            .ToDictionary(
+                group => group.Key,
+                group => string.Join(", ", group
+                    .Select(x => x.GuardianPhoneNumber)
+                    .Where(phone => !string.IsNullOrWhiteSpace(phone))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(phone => phone)));
+
         var groups = await _dbContext.ClassGroups.AsNoTracking().ToDictionaryAsync(x => x.Id, x => x.Name);
         ViewBag.Groups = groups;
+
+        foreach (var child in children)
+        {
+            child.GuardiansText = guardianNamesByChild.GetValueOrDefault(child.Id) ?? "-";
+            child.GuardianPhoneNumbersText = guardianPhonesByChild.GetValueOrDefault(child.Id) ?? "-";
+        }
+
         return View(children);
     }
 
