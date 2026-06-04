@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using KidsAttendance.Infrastructure.Persistence;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = ApplicationRoles.Coordinador)]
 public class ReportsController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;

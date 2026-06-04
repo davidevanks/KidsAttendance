@@ -1,5 +1,6 @@
 using KidsAttendance.Infrastructure.Persistence;
 using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin,Teacher")]
+[Authorize(Roles = ApplicationRoles.CoordinadorOrTeacher)]
 public class GuardiansController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;
@@ -25,7 +26,7 @@ public class GuardiansController : Controller
     {
         var query = _dbContext.Guardians.AsNoTracking().AsQueryable();
 
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroupIds = await GetAssignedGroupIdsAsync();
             if (allowedGroupIds.Count == 0)
@@ -94,7 +95,7 @@ public class GuardiansController : Controller
         }
 
         var query = _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroupIds = await GetAssignedGroupIdsAsync();
             if (allowedGroupIds.Count == 0)

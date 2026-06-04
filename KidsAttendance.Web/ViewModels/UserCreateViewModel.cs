@@ -1,3 +1,4 @@
+using KidsAttendance.Infrastructure.Security;
 using System.ComponentModel.DataAnnotations;
 
 namespace KidsAttendance.Web.ViewModels;
@@ -30,7 +31,7 @@ public class UserCreateViewModel
     public bool AsistenciaGlobal { get; set; } = false;
 
     [Display(Name = "Rol")]
-    public string Role { get; set; } = "Teacher";
+    public string Role { get; set; } = ApplicationRoles.Teacher;
 
     [DataType(DataType.Password)]
     [Display(Name = "Contraseña")]

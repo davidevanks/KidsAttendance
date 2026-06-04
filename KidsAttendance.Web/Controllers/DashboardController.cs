@@ -1,4 +1,5 @@
 using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,12 +19,12 @@ public class DashboardController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        if (User.IsInRole("Admin"))
+        if (User.IsInRole(ApplicationRoles.Coordinador))
         {
             return View("Admin");
         }
 
-        if (User.IsInRole("SnackTeam"))
+        if (User.IsInRole(ApplicationRoles.SnackTeam))
         {
             return View("SnackTeam");
         }

@@ -1,6 +1,7 @@
 using KidsAttendance.Application.Interfaces;
 using KidsAttendance.Infrastructure.Persistence;
 using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -10,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin,Teacher")]
+[Authorize(Roles = ApplicationRoles.CoordinadorOrTeacher)]
 public class AttendanceController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;
@@ -28,13 +29,13 @@ public class AttendanceController : Controller
     public async Task<IActionResult> CheckIn()
     {
         var model = new CheckInViewModel();
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var teacherGroup = await GetTeacherActiveGroupAsync();
             if (teacherGroup is null)
             {
                 ViewBag.CheckInBlocked = true;
-                ViewBag.CheckInBlockedMessage = "No tenés un grupo activo asignado. Solicitá asignación al administrador.";
+                ViewBag.CheckInBlockedMessage = "No tenés un grupo activo asignado. Solicitá asignación al coordinador.";
                 await LoadCheckInLookupsAsync();
                 return View(model);
             }
@@ -52,13 +53,13 @@ public class AttendanceController : Controller
     public async Task<IActionResult> CheckIn(CheckInViewModel model)
     {
         ClassGroup? teacherGroup = null;
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             teacherGroup = await GetTeacherActiveGroupAsync();
             if (teacherGroup is null)
             {
                 ViewBag.CheckInBlocked = true;
-                ViewBag.CheckInBlockedMessage = "No tenés un grupo activo asignado. Solicitá asignación al administrador.";
+                ViewBag.CheckInBlockedMessage = "No tenés un grupo activo asignado. Solicitá asignación al coordinador.";
                 await LoadCheckInLookupsAsync();
                 return View(model);
             }
@@ -75,7 +76,7 @@ public class AttendanceController : Controller
             return View(model);
         }
 
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(model.ClassGroupId))
@@ -391,8 +392,8 @@ public class AttendanceController : Controller
         var targetDate = date?.Date ?? DateTime.Today;
         var session = await _dbContext.AttendanceSessions.AsNoTracking().FirstOrDefaultAsync(x => x.SessionDate == targetDate);
         ViewBag.Date = targetDate;
-        ViewBag.IsTeacher = User.IsInRole("Teacher");
-        ViewBag.IsAdmin = User.IsInRole("Admin");
+        ViewBag.IsTeacher = User.IsInRole(ApplicationRoles.Teacher);
+        ViewBag.IsCoordinador = User.IsInRole(ApplicationRoles.Coordinador);
         ViewBag.IsGlobalAttendance = true;
         ViewBag.Groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
         ViewBag.SelectedClassGroupId = classGroupId;
@@ -504,7 +505,7 @@ public class AttendanceController : Controller
             return RedirectToAction(nameof(CheckOut));
         }
 
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(firstClassGroupId))
@@ -559,9 +560,9 @@ public class AttendanceController : Controller
         var targetDate = date?.Date ?? DateTime.Today;
         var session = await _dbContext.AttendanceSessions.AsNoTracking().FirstOrDefaultAsync(x => x.SessionDate == targetDate);
         ViewBag.Date = targetDate;
-        ViewBag.IsTeacher = User.IsInRole("Teacher");
-        ViewBag.IsAdmin = User.IsInRole("Admin");
-        if (User.IsInRole("Teacher"))
+        ViewBag.IsTeacher = User.IsInRole(ApplicationRoles.Teacher);
+        ViewBag.IsCoordinador = User.IsInRole(ApplicationRoles.Coordinador);
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var teacherGroup = await GetTeacherActiveGroupAsync();
             if (teacherGroup is null)
@@ -590,7 +591,7 @@ public class AttendanceController : Controller
         }
 
         var query = _dbContext.AttendanceRecords.AsNoTracking().Where(x => x.AttendanceSessionId == session.Id);
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             query = query.Where(x => x.ClassGroupId == classGroupId);
         }
@@ -669,7 +670,7 @@ public class AttendanceController : Controller
             return Json(Array.Empty<object>());
         }
 
-        if (User.IsInRole("Teacher") && !await IsGlobalAttendanceAsync())
+        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(classGroupId))
@@ -708,7 +709,7 @@ public class AttendanceController : Controller
             .Select(c => new { c.Id, c.FullName })
             .Distinct();
 
-        if (User.IsInRole("Teacher") && !await IsGlobalAttendanceAsync())
+        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(classGroupId))
@@ -757,7 +758,7 @@ public class AttendanceController : Controller
             return NotFound();
         }
 
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(child.CurrentClassGroupId))
@@ -808,7 +809,7 @@ public class AttendanceController : Controller
             return BadRequest(new { success = false, message = "La edad debe estar entre 0 y 20." });
         }
 
-        if (User.IsInRole("Teacher") && !await IsGlobalAttendanceAsync())
+        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(classGroupId))
@@ -899,7 +900,7 @@ public class AttendanceController : Controller
     {
         var groupsQuery = _dbContext.ClassGroups.AsNoTracking().Where(x => x.IsActive);
         var childrenQuery = _dbContext.Children.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole("Teacher") && !loadAllGroups)
+        if (User.IsInRole(ApplicationRoles.Teacher) && !loadAllGroups)
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             groupsQuery = groupsQuery.Where(x => allowedGroups.Contains(x.Id));
@@ -916,7 +917,7 @@ public class AttendanceController : Controller
         var session = await EnsureTodaySessionAsync();
         var query = _dbContext.AttendanceRecords.AsNoTracking()
             .Where(x => x.AttendanceSessionId == session.Id && x.Status == "CheckedIn");
-        if (User.IsInRole("Teacher") && !loadAllGroups)
+        if (User.IsInRole(ApplicationRoles.Teacher) && !loadAllGroups)
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(x => allowedGroups.Contains(x.ClassGroupId));
@@ -957,7 +958,7 @@ public class AttendanceController : Controller
 
     private async Task<ClassGroup?> GetTeacherActiveGroupAsync()
     {
-        if (!User.IsInRole("Teacher"))
+        if (!User.IsInRole(ApplicationRoles.Teacher))
         {
             return null;
         }
@@ -979,7 +980,7 @@ public class AttendanceController : Controller
 
     private async Task<bool> IsGlobalAttendanceAsync()
     {
-        if (User.IsInRole("Admin"))
+        if (User.IsInRole(ApplicationRoles.Coordinador))
         {
             return true;
         }

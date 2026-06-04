@@ -1,5 +1,6 @@
 using KidsAttendance.Infrastructure.Persistence;
 using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = ApplicationRoles.Coordinador)]
 public class TeacherAssignmentsController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;
@@ -88,7 +89,7 @@ public class TeacherAssignmentsController : Controller
 
     private async Task<IActionResult> BuildIndexViewAsync(TeacherAssignmentViewModel model)
     {
-        var teachers = await _userManager.GetUsersInRoleAsync("Teacher");
+        var teachers = await _userManager.GetUsersInRoleAsync(ApplicationRoles.Teacher);
         var groups = await _dbContext.ClassGroups.AsNoTracking().OrderBy(x => x.MinAge).ToListAsync();
         var assignments = await _dbContext.TeacherClassGroups.AsNoTracking().Where(x => x.IsActive).ToListAsync();
 

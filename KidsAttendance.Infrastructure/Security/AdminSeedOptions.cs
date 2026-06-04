@@ -7,5 +7,5 @@ public class AdminSeedOptions
     public bool Enabled { get; set; }
     public string Account { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public string FullName { get; set; } = "Administrador";
+    public string FullName { get; set; } = "Coordinador General";
 }

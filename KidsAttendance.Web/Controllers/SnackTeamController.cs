@@ -1,11 +1,12 @@
 using KidsAttendance.Infrastructure.Persistence;
+using KidsAttendance.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "SnackTeam,Admin")]
+[Authorize(Roles = ApplicationRoles.SnackTeamOrCoordinador)]
 public class SnackTeamController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;

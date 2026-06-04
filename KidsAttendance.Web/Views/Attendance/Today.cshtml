@@ -3,9 +3,9 @@
     var rows = ViewBag.Rows as IReadOnlyList<KidsAttendance.Web.ViewModels.AttendanceTodayRowViewModel> ?? new List<KidsAttendance.Web.ViewModels.AttendanceTodayRowViewModel>();
     var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
     var isTeacher = (ViewBag.IsTeacher as bool?) == true;
-    var isAdmin = (ViewBag.IsAdmin as bool?) == true;
+    var isCoordinador = (ViewBag.IsCoordinador as bool?) == true;
     var isGlobalAttendance = (ViewBag.IsGlobalAttendance as bool?) == true;
-    var showGroup = isAdmin || isGlobalAttendance;
+    var showGroup = isCoordinador || isGlobalAttendance;
     var teacherNoGroup = (ViewBag.TeacherNoGroup as bool?) == true;
     var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
     int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
@@ -14,7 +14,7 @@
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 @if (teacherNoGroup)
 {
-    <div class="alert alert-warning">No tenés grupo activo asignado. Solicitá asignación al administrador.</div>
+    <div class="alert alert-warning">No tenés grupo activo asignado. Solicitá asignación al coordinador.</div>
 }
 <form method="get" class="row g-2 mb-3">
     <div class="col-6"><input type="date" name="date" value="@(((DateTime?)ViewBag.Date ?? DateTime.Today).ToString("yyyy-MM-dd"))" class="form-control form-control-lg" onchange="this.form.submit()" /></div>

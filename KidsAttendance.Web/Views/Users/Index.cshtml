@@ -23,7 +23,7 @@
                 <td>@item.FullName</td>
                 <td>@(userRoles.GetValueOrDefault(item.Id) ?? "-")</td>
                 <td>
-                    @if (userRoles.GetValueOrDefault(item.Id) == "Teacher")
+                    @if (userRoles.GetValueOrDefault(item.Id) == ApplicationRoles.Teacher)
                     {
                         <span class="badge @(item.AsistenciaGlobal ? "text-bg-info" : "text-bg-light")">@(item.AsistenciaGlobal ? "Sí" : "No")</span>
                     }

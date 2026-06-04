@@ -1,5 +1,6 @@
 using KidsAttendance.Infrastructure.Persistence;
 using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin,Teacher")]
+[Authorize(Roles = ApplicationRoles.CoordinadorOrTeacher)]
 public class ChildrenController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;
@@ -25,7 +26,7 @@ public class ChildrenController : Controller
     public async Task<IActionResult> Index()
     {
         var query = _dbContext.Children.AsNoTracking();
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(x => allowedGroups.Contains(x.CurrentClassGroupId));
@@ -103,7 +104,7 @@ public class ChildrenController : Controller
         await LoadLookupsAsync();
         if (!ModelState.IsValid) return View(model);
 
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(model.CurrentClassGroupId))
@@ -134,7 +135,7 @@ public class ChildrenController : Controller
     {
         var child = await _dbContext.Children.FindAsync(id);
         if (child is null) return NotFound();
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(child.CurrentClassGroupId))
@@ -169,7 +170,7 @@ public class ChildrenController : Controller
 
         var child = await _dbContext.Children.FirstOrDefaultAsync(x => x.Id == model.Id);
         if (child is null) return NotFound();
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(child.CurrentClassGroupId) || !allowedGroups.Contains(model.CurrentClassGroupId))
@@ -210,7 +211,7 @@ public class ChildrenController : Controller
     private async Task LoadLookupsAsync(IEnumerable<int>? selectedGuardianIds = null)
     {
         var groupsQuery = _dbContext.ClassGroups.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole("Teacher"))
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             groupsQuery = groupsQuery.Where(x => allowedGroups.Contains(x.Id));

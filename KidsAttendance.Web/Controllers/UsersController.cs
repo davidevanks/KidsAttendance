@@ -1,4 +1,5 @@
 using KidsAttendance.Infrastructure.Persistence.Entities;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = ApplicationRoles.Coordinador)]
 public class UsersController : Controller
 {
     private readonly UserManager<AppUser> _userManager;
@@ -39,7 +40,7 @@ public class UsersController : Controller
     public async Task<IActionResult> Create()
     {
         await EnsureRolesAsync();
-        return View(new UserCreateViewModel { IsActive = true, Role = "Teacher" });
+        return View(new UserCreateViewModel { IsActive = true, Role = ApplicationRoles.Teacher });
     }
 
     [HttpPost]
@@ -125,7 +126,7 @@ public class UsersController : Controller
             PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
             AsistenciaGlobal = user.AsistenciaGlobal,
-            Role = roles.FirstOrDefault() ?? "Teacher"
+            Role = roles.FirstOrDefault() ?? ApplicationRoles.Teacher
         });
     }
 
@@ -172,7 +173,7 @@ public class UsersController : Controller
         user.NormalizedUserName = normalizedAccount;
         user.PhoneNumber = normalizedPhone;
         user.IsActive = model.IsActive;
-        user.AsistenciaGlobal = model.Role == "Teacher" && model.AsistenciaGlobal;
+        user.AsistenciaGlobal = model.Role == ApplicationRoles.Teacher && model.AsistenciaGlobal;
         user.UpdatedAt = DateTime.UtcNow;
 
         var updateResult = await _userManager.UpdateAsync(user);
@@ -220,7 +221,7 @@ public class UsersController : Controller
 
     private async Task EnsureRolesAsync()
     {
-        foreach (var roleName in new[] { "Admin", "Teacher", "SnackTeam" })
+        foreach (var roleName in new[] { ApplicationRoles.Coordinador, ApplicationRoles.Teacher, ApplicationRoles.SnackTeam })
         {
             if (!await _roleManager.RoleExistsAsync(roleName))
             {

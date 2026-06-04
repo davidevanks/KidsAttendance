@@ -1,6 +1,7 @@
 using KidsAttendance.Application.DTOs;
 using KidsAttendance.Application.Interfaces;
 using KidsAttendance.Infrastructure.Persistence;
+using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = ApplicationRoles.Coordinador)]
 public class ClassGroupsController : Controller
 {
     private readonly IClassGroupService _classGroupService;

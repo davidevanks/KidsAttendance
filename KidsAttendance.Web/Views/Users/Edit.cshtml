@@ -36,7 +36,7 @@
             var roleSelect = $("#Role");
             var asistenciaGlobalCheck = $(".ka-asistencia-global-check");
             function toggleAsistenciaGlobal() {
-                asistenciaGlobalCheck.toggle(roleSelect.val() === "Teacher");
+                asistenciaGlobalCheck.toggle(roleSelect.val() === "@ApplicationRoles.Teacher");
             }
             roleSelect.on("change", toggleAsistenciaGlobal);
             toggleAsistenciaGlobal();

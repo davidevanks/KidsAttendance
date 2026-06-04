@@ -4,34 +4,34 @@ GO
 USE [KidsAttendanceDb];
 GO
 
-DECLARE @AdminAccount NVARCHAR(256) = N'admin';
-DECLARE @AdminNormalizedAccount NVARCHAR(256) = UPPER(@AdminAccount);
-DECLARE @AdminEmail NVARCHAR(256) = @AdminAccount + N'@local.invalid';
-DECLARE @AdminNormalizedEmail NVARCHAR(256) = UPPER(@AdminEmail);
+DECLARE @CoordinadorAccount NVARCHAR(256) = N'coordinador';
+DECLARE @CoordinadorNormalizedAccount NVARCHAR(256) = UPPER(@CoordinadorAccount);
+DECLARE @CoordinadorEmail NVARCHAR(256) = @CoordinadorAccount + N'@local.invalid';
+DECLARE @CoordinadorNormalizedEmail NVARCHAR(256) = UPPER(@CoordinadorEmail);
 -- Password seed: Test123
-DECLARE @AdminPasswordHash NVARCHAR(MAX) = N'AQAAAAIAAYagAAAAEFIn8wS4Phahrao8UUoU0ap2VzEA6nWQJc+ZcYIBvVRCy81Y1Sj781thuF8RCvALAQ==';
-DECLARE @AdminId NVARCHAR(450);
-DECLARE @AdminRoleId NVARCHAR(450);
+DECLARE @CoordinadorPasswordHash NVARCHAR(MAX) = N'AQAAAAIAAYagAAAAEFIn8wS4Phahrao8UUoU0ap2VzEA6nWQJc+ZcYIBvVRCy81Y1Sj781thuF8RCvALAQ==';
+DECLARE @CoordinadorId NVARCHAR(450);
+DECLARE @CoordinadorRoleId NVARCHAR(450);
 
-SELECT @AdminRoleId = Id
+SELECT @CoordinadorRoleId = Id
 FROM dbo.AspNetRoles
-WHERE NormalizedName = N'ADMIN';
+WHERE NormalizedName = N'COORDINADOR';
 
-IF @AdminRoleId IS NULL
+IF @CoordinadorRoleId IS NULL
 BEGIN
-    SET @AdminRoleId = N'role-admin';
+    SET @CoordinadorRoleId = N'role-coordinador';
     INSERT INTO dbo.AspNetRoles (Id, [Name], NormalizedName, ConcurrencyStamp)
-    VALUES (@AdminRoleId, N'Admin', N'ADMIN', CONVERT(NVARCHAR(36), NEWID()));
+    VALUES (@CoordinadorRoleId, N'Coordinador', N'COORDINADOR', CONVERT(NVARCHAR(36), NEWID()));
 END;
 
-SELECT @AdminId = Id
+SELECT @CoordinadorId = Id
 FROM dbo.AspNetUsers
-WHERE NormalizedUserName = @AdminNormalizedAccount
-   OR NormalizedEmail = @AdminNormalizedEmail;
+WHERE NormalizedUserName = @CoordinadorNormalizedAccount
+   OR NormalizedEmail = @CoordinadorNormalizedEmail;
 
-IF @AdminId IS NULL
+IF @CoordinadorId IS NULL
 BEGIN
-    SET @AdminId = CONVERT(NVARCHAR(36), NEWID());
+    SET @CoordinadorId = CONVERT(NVARCHAR(36), NEWID());
 
     INSERT INTO dbo.AspNetUsers
     (
@@ -54,14 +54,14 @@ BEGIN
     )
     VALUES
     (
-        @AdminId,
-        N'Administrador General',
-        @AdminAccount,
-        @AdminNormalizedAccount,
-        @AdminEmail,
-        @AdminNormalizedEmail,
+        @CoordinadorId,
+        N'Coordinador General',
+        @CoordinadorAccount,
+        @CoordinadorNormalizedAccount,
+        @CoordinadorEmail,
+        @CoordinadorNormalizedEmail,
         1,
-        @AdminPasswordHash,
+        @CoordinadorPasswordHash,
         CONVERT(NVARCHAR(36), NEWID()),
         CONVERT(NVARCHAR(36), NEWID()),
         0,
@@ -76,27 +76,27 @@ ELSE
 BEGIN
     UPDATE dbo.AspNetUsers
     SET
-        FullName = N'Administrador General',
+        FullName = N'Coordinador General',
         IsActive = 1,
         EmailConfirmed = 1,
-        PasswordHash = @AdminPasswordHash,
-        UserName = @AdminAccount,
-        NormalizedUserName = @AdminNormalizedAccount,
-        Email = @AdminEmail,
-        NormalizedEmail = @AdminNormalizedEmail,
+        PasswordHash = @CoordinadorPasswordHash,
+        UserName = @CoordinadorAccount,
+        NormalizedUserName = @CoordinadorNormalizedAccount,
+        Email = @CoordinadorEmail,
+        NormalizedEmail = @CoordinadorNormalizedEmail,
         UpdatedAt = SYSDATETIME()
-    WHERE Id = @AdminId;
+    WHERE Id = @CoordinadorId;
 END;
 
 IF NOT EXISTS
 (
     SELECT 1
     FROM dbo.AspNetUserRoles ur
-    WHERE ur.UserId = @AdminId
-      AND ur.RoleId = @AdminRoleId
+    WHERE ur.UserId = @CoordinadorId
+      AND ur.RoleId = @CoordinadorRoleId
 )
 BEGIN
     INSERT INTO dbo.AspNetUserRoles (UserId, RoleId)
-    VALUES (@AdminId, @AdminRoleId);
+    VALUES (@CoordinadorId, @CoordinadorRoleId);
 END;
 GO

@@ -32,7 +32,7 @@ public class AdminSeedService
             return;
         }
 
-        foreach (var roleName in new[] { "Admin", "Teacher", "SnackTeam" })
+        foreach (var roleName in new[] { ApplicationRoles.Coordinador, ApplicationRoles.Teacher, ApplicationRoles.SnackTeam })
         {
             if (!await _roleManager.RoleExistsAsync(roleName))
             {
@@ -65,12 +65,12 @@ public class AdminSeedService
         var createResult = await _userManager.CreateAsync(user, options.Password);
         if (!createResult.Succeeded)
         {
-            _logger.LogError("No se pudo crear el admin inicial: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
+            _logger.LogError("No se pudo crear el coordinador inicial: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
             return;
         }
 
-        await _userManager.AddToRoleAsync(user, "Admin");
-        _logger.LogInformation("Usuario admin inicial creado: {Account}", account);
+        await _userManager.AddToRoleAsync(user, ApplicationRoles.Coordinador);
+        _logger.LogInformation("Usuario coordinador inicial creado: {Account}", account);
     }
 
     private static string BuildInternalEmail(string account)
