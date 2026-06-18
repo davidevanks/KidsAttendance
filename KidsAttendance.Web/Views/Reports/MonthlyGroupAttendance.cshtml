@@ -1,0 +1,87 @@
+@model KidsAttendance.Web.ViewModels.MonthlyAttendanceReportViewModel
+@{
+    ViewData["Title"] = "Reporte mensual";
+    var currentYear = DateTime.Today.Year;
+    var years = Enumerable.Range(currentYear - 5, 7).Append(Model.Year).Distinct().OrderByDescending(x => x).ToList();
+    var reportTitle = Model.HasAssignedGroup
+        ? $"Reporte asistencia mensual grupo {Model.GroupName}"
+        : "Reporte asistencia mensual";
+}
+
+<h1 class="h4 mb-3">@reportTitle</h1>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-12 col-sm-5 col-md-3">
+        <label for="year" class="form-label">Año</label>
+        <select id="year" name="year" class="form-select form-select-lg">
+            @foreach (var year in years)
+            {
+                <option value="@year" selected="@(Model.Year == year ? "selected" : null)">@year</option>
+            }
+        </select>
+    </div>
+    <div class="col-12 col-sm-5 col-md-3">
+        <label for="month" class="form-label">Mes</label>
+        <select id="month" name="month" class="form-select form-select-lg">
+            @for (var month = 1; month <= 12; month++)
+            {
+                <option value="@month" selected="@(Model.Month == month ? "selected" : null)">@month.ToString("00")</option>
+            }
+        </select>
+    </div>
+    <div class="col-12 col-sm-2 col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary btn-lg w-100">Consultar</button>
+    </div>
+</form>
+
+@if (!Model.HasAssignedGroup)
+{
+    <div class="alert alert-warning">No tenés grupo activo asignado. Solicitá asignación al coordinador.</div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (Model.AttendanceDates.Count == 0)
+            {
+                <div class="alert alert-info">No hay sesiones de asistencia registradas para este mes.</div>
+            }
+            <div class="table-responsive ka-monthly-attendance">
+                <table class="table table-bordered table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ka-monthly-child-column">Niño</th>
+                            @foreach (var date in Model.AttendanceDates)
+                            {
+                                <th class="text-center">@date.ToString("dd/MM")</th>
+                            }
+                            <th class="text-center">Total asistencia mensual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Rows.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="@(Model.AttendanceDates.Count + 2)" class="text-center text-muted">No hay niños activos en este grupo.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var row in Model.Rows)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@row.ChildName</td>
+                                    @foreach (var date in Model.AttendanceDates)
+                                    {
+                                        <td class="text-center">@(row.AttendedDates.Contains(date) ? "x" : string.Empty)</td>
+                                    }
+                                    <td class="text-center fw-semibold">@row.TotalAttendance</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

@@ -41,6 +41,22 @@ body {
   color: #6c757d;
 }
 
+.ka-monthly-attendance table {
+  min-width: 720px;
+}
+
+.ka-monthly-attendance th,
+.ka-monthly-attendance td {
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+.ka-monthly-attendance .ka-monthly-child-column,
+.ka-monthly-attendance tbody td:first-child {
+  min-width: 180px;
+  white-space: normal;
+}
+
 @media (max-width: 767px) {
   .dataTables_filter input[type="search"] {
     width: 100%;

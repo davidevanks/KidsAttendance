@@ -1,24 +1,29 @@
 using ClosedXML.Excel;
 using KidsAttendance.Infrastructure.Persistence;
+using KidsAttendance.Infrastructure.Persistence.Entities;
 using KidsAttendance.Infrastructure.Security;
 using KidsAttendance.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace KidsAttendance.Web.Controllers;
 
-[Authorize(Roles = ApplicationRoles.Coordinador)]
+[Authorize]
 public class ReportsController : Controller
 {
     private readonly KidsAttendanceDbContext _dbContext;
+    private readonly UserManager<AppUser> _userManager;
 
-    public ReportsController(KidsAttendanceDbContext dbContext)
+    public ReportsController(KidsAttendanceDbContext dbContext, UserManager<AppUser> userManager)
     {
         _dbContext = dbContext;
+        _userManager = userManager;
     }
 
     [HttpGet]
+    [Authorize(Roles = ApplicationRoles.Coordinador)]
     public async Task<IActionResult> AttendanceByDay(DateTime? date)
     {
         var targetDate = date?.Date ?? DateTime.Today;
@@ -28,6 +33,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = ApplicationRoles.Coordinador)]
     public async Task<IActionResult> DownloadAttendanceExcel(DateTime date)
     {
         var targetDate = date.Date;
@@ -63,6 +69,91 @@ public class ReportsController : Controller
             $"Asistencia_{targetDate:yyyyMMdd}.xlsx");
     }
 
+    /// <summary>
+    /// Shows the current teacher a month-by-month attendance matrix for their active group.
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = ApplicationRoles.Teacher)]
+    public async Task<IActionResult> MonthlyGroupAttendance(int? year, int? month)
+    {
+        var today = DateTime.Today;
+        var selectedYear = year is >= 1 and <= 9999 ? year.Value : today.Year;
+        var selectedMonth = month is >= 1 and <= 12 ? month.Value : today.Month;
+        var monthStart = new DateTime(selectedYear, selectedMonth, 1);
+        var nextMonthStart = monthStart.AddMonths(1);
+
+        var model = new MonthlyAttendanceReportViewModel
+        {
+            Year = selectedYear,
+            Month = selectedMonth
+        };
+
+        var teacherGroup = await GetTeacherActiveGroupAsync();
+        if (teacherGroup is null)
+        {
+            return View(model);
+        }
+
+        model.HasAssignedGroup = true;
+        model.GroupName = teacherGroup.Name;
+
+        var children = await _dbContext.Children.AsNoTracking()
+            .Where(x => x.IsActive && x.CurrentClassGroupId == teacherGroup.Id)
+            .OrderBy(x => x.FullName)
+            .Select(x => new { x.Id, x.FullName })
+            .ToListAsync();
+
+        var sessions = await _dbContext.AttendanceSessions.AsNoTracking()
+            .Where(x => x.SessionDate >= monthStart && x.SessionDate < nextMonthStart)
+            .OrderBy(x => x.SessionDate)
+            .Select(x => new { x.Id, SessionDate = x.SessionDate.Date })
+            .ToListAsync();
+
+        model.AttendanceDates = sessions.Select(x => x.SessionDate).ToList();
+
+        if (children.Count == 0 || sessions.Count == 0)
+        {
+            model.Rows = children.Select(x => new MonthlyAttendanceChildRowViewModel
+            {
+                ChildName = x.FullName
+            }).ToList();
+
+            return View(model);
+        }
+
+        var sessionIds = sessions.Select(x => x.Id).ToList();
+        var sessionDatesById = sessions.ToDictionary(x => x.Id, x => x.SessionDate);
+        var attendanceRecords = await _dbContext.AttendanceRecords.AsNoTracking()
+            .Where(x => x.ClassGroupId == teacherGroup.Id && sessionIds.Contains(x.AttendanceSessionId))
+            .Select(x => new { x.ChildId, x.AttendanceSessionId })
+            .Distinct()
+            .ToListAsync();
+
+        var attendanceKeys = attendanceRecords
+            .Select(x => (x.ChildId, Date: sessionDatesById[x.AttendanceSessionId]))
+            .ToHashSet();
+
+        model.Rows = children
+            .Select(child =>
+            {
+                var attendedDates = model.AttendanceDates
+                    .Where(date => attendanceKeys.Contains((child.Id, date)))
+                    .ToHashSet();
+
+                return new MonthlyAttendanceChildRowViewModel
+                {
+                    ChildName = child.FullName,
+                    AttendedDates = attendedDates,
+                    TotalAttendance = attendedDates.Count
+                };
+            })
+            .OrderByDescending(x => x.TotalAttendance)
+            .ThenBy(x => x.ChildName)
+            .ToList();
+
+        return View(model);
+    }
+
     private async Task<List<AttendanceReportResultViewModel>> BuildSummaryAsync(DateTime date)
     {
         var session = await _dbContext.AttendanceSessions.AsNoTracking().FirstOrDefaultAsync(x => x.SessionDate == date);
@@ -80,5 +171,22 @@ public class ReportsController : Controller
             GroupName = groups.GetValueOrDefault(x.ClassGroupId, $"Grupo #{x.ClassGroupId}"),
             Count = x.Count
         }).OrderBy(x => x.GroupName).ToList();
+    }
+
+    private async Task<ClassGroup?> GetTeacherActiveGroupAsync()
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return null;
+        }
+
+        return await _dbContext.TeacherClassGroups.AsNoTracking()
+            .Where(x => x.TeacherUserId == userId && x.IsActive)
+            .Join(_dbContext.ClassGroups.AsNoTracking().Where(x => x.IsActive),
+                teacherClassGroup => teacherClassGroup.ClassGroupId,
+                classGroup => classGroup.Id,
+                (_, classGroup) => classGroup)
+            .FirstOrDefaultAsync();
     }
 }
