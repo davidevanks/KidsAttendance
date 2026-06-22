@@ -11,5 +11,7 @@ public class CheckOutViewModel
     [Required(ErrorMessage = "Seleccioná el padre que retira.")]
     [Range(1, int.MaxValue, ErrorMessage = "Seleccioná un padre válido.")]
     public int CheckOutGuardianId { get; set; }
+
+    [Required(ErrorMessage = "La firma de salida es requerida.")]
     public string? CheckOutSignatureBase64 { get; set; }
 }

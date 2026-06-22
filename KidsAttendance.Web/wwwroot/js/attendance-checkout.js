@@ -6,6 +6,7 @@ $(function () {
     var recordSelect = $("#RecordIds");
     var guardianSelect = $("#CheckOutGuardianId");
     var form = $("#checkout-form");
+    var hidePhone = form.data("hide-phone") === true || form.data("hide-phone") === "true";
 
     recordSelect.select2({
         theme: "bootstrap-5",
@@ -40,7 +41,8 @@ $(function () {
                 }
 
                 data.forEach(function (item) {
-                    guardianSelect.append($("<option>", { value: item.id, text: item.fullName + " - " + item.phoneNumber }));
+                    var text = hidePhone ? item.fullName : item.fullName + " - " + item.phoneNumber;
+                    guardianSelect.append($("<option>", { value: item.id, text: text }));
                 });
 
                 if (data.length === 1) {
@@ -58,9 +60,23 @@ $(function () {
         return;
     }
 
-    form.on("submit", function () {
+    form.on("submit", function (e) {
         if (signatureHandler) {
             signatureHandler.updateHidden();
         }
+
+        var signatureValue = $("#CheckOutSignatureBase64").val();
+        if (!signatureValue) {
+            e.preventDefault();
+            $("#checkout-signature-error").removeClass("d-none");
+            document.getElementById("checkout-signature-pad").scrollIntoView({ behavior: "smooth", block: "center" });
+            return false;
+        }
+
+        $("#checkout-signature-error").addClass("d-none");
+    });
+
+    $("#btn-clear-checkout-signature").on("click", function () {
+        $("#checkout-signature-error").addClass("d-none");
     });
 });

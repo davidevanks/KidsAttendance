@@ -19,7 +19,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <form id="checkin-form" asp-action="@(ViewBag.FormAction as string ?? "CheckIn")" method="post">
+        <form id="checkin-form" asp-action="@(ViewBag.FormAction as string ?? "CheckIn")" method="post" data-hide-phone="@(User.IsInRole(ApplicationRoles.Teacher).ToString().ToLowerInvariant())">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="All" class="text-danger small mb-2"></div>
             @if (teacherFixedGroup is not null)

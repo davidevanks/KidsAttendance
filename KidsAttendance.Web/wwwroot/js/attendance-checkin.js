@@ -5,6 +5,7 @@ $(function () {
         : null;
 
     var form = $("#checkin-form");
+    var hidePhone = form.data("hide-phone") === true || form.data("hide-phone") === "true";
     var childSelect = $("#ChildIds");
     var guardianSelect = $("#GuardianId");
     var classGroupInput = $("#ClassGroupId");
@@ -20,10 +21,14 @@ $(function () {
         return (childSelect.val() || []).map(function (id) { return parseInt(id, 10); }).filter(Boolean);
     }
 
+    function guardianText(g) {
+        return hidePhone ? g.fullName : g.fullName + " - " + g.phoneNumber;
+    }
+
     function populateGuardianSelect(guardians) {
         guardianSelect.empty().append($("<option>", { value: "", text: "Seleccioná quién entrega..." }));
         guardians.forEach(function (g) {
-            guardianSelect.append($("<option>", { value: g.id, text: g.fullName + " - " + g.phoneNumber }));
+            guardianSelect.append($("<option>", { value: g.id, text: guardianText(g) }));
         });
         guardianSelect.trigger("change");
 
@@ -138,7 +143,7 @@ $(function () {
                 return;
             }
 
-            var optionText = result.fullName + " - " + result.phoneNumber;
+            var optionText = guardianText(result);
             var exists = guardianSelect.find("option[value='" + result.guardianId + "']").length > 0;
             if (!exists) {
                 guardianSelect.append($("<option>", { value: result.guardianId, text: optionText }));

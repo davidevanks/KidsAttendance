@@ -326,6 +326,12 @@ public class AttendanceController : Controller
             return RedirectToAction(nameof(GlobalCheckOut));
         }
 
+        if (string.IsNullOrWhiteSpace(model.CheckOutSignatureBase64))
+        {
+            TempData["ErrorMessage"] = "La firma de salida es requerida.";
+            return RedirectToAction(nameof(GlobalCheckOut));
+        }
+
         var records = await _dbContext.AttendanceRecords
             .Where(x => model.RecordIds.Contains(x.Id))
             .ToListAsync();
@@ -486,6 +492,12 @@ public class AttendanceController : Controller
         if (model.RecordIds.Count == 0)
         {
             TempData["ErrorMessage"] = "Seleccioná al menos un niño para registrar salida.";
+            return RedirectToAction(nameof(CheckOut));
+        }
+
+        if (string.IsNullOrWhiteSpace(model.CheckOutSignatureBase64))
+        {
+            TempData["ErrorMessage"] = "La firma de salida es requerida.";
             return RedirectToAction(nameof(CheckOut));
         }
 

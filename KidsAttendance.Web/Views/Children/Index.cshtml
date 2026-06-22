@@ -2,13 +2,27 @@
 @{
     ViewData["Title"] = "Niños";
     var groups = ViewBag.Groups as Dictionary<int, string> ?? new();
+    var groupOptions = ViewBag.GroupOptions as List<KeyValuePair<int, string>> ?? new();
     var myGroupOnly = (ViewBag.MyGroupOnly as bool?) == true;
+    int? selectedClassGroupId = ViewBag.SelectedClassGroupId as int?;
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Niños</h1>
     <a asp-action="Create" asp-route-myGroupOnly="@(myGroupOnly ? "true" : null)" class="btn btn-primary">Nuevo niño</a>
 </div>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
+<form method="get" class="row g-2 mb-3">
+    @if (myGroupOnly) { <input type="hidden" name="myGroupOnly" value="true" /> }
+    <div class="col-12 col-md-4">
+        <select name="classGroupId" class="form-select form-select-lg" onchange="this.form.submit()">
+            <option value="">Todos los grupos</option>
+            @foreach (var g in groupOptions)
+            {
+                <option value="@g.Key" selected="@(selectedClassGroupId == g.Key ? "selected" : null)">@g.Value</option>
+            }
+        </select>
+    </div>
+</form>
 <div class="table-responsive">
     <table class="js-datatable table table-striped align-middle">
         <thead><tr><th data-priority="1">Nombre</th><th data-priority="2">Padres</th>@if (!User.IsInRole(ApplicationRoles.Teacher)) { <th data-priority="2">Celular</th> }<th data-priority="4">Edad</th><th data-priority="3">Grupo</th><th data-priority="4">Estado</th><th data-priority="1" class="text-end">Editar</th></tr></thead>

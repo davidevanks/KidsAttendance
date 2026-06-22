@@ -10,7 +10,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <form id="checkout-form" asp-action="@(ViewBag.FormAction as string ?? "CheckOut")" method="post">
+        <form id="checkout-form" asp-action="@(ViewBag.FormAction as string ?? "CheckOut")" method="post" data-hide-phone="@(User.IsInRole(ApplicationRoles.Teacher).ToString().ToLowerInvariant())">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
 
@@ -18,7 +18,15 @@
             <select asp-for="RecordIds" id="RecordIds" class="form-select form-select-lg mb-3" multiple size="8">
                 @foreach (var row in activeRows)
                 {
-                    <option value="@row.RecordId" data-child-id="@row.ChildId">@row.ChildName - @row.GuardianName - @row.GuardianPhone @(string.IsNullOrWhiteSpace(row.TokenNumber) ? "" : $" - Ficha: {row.TokenNumber}")</option>
+                    var ficha = string.IsNullOrWhiteSpace(row.TokenNumber) ? "" : $" - Ficha: {row.TokenNumber}";
+                    if (User.IsInRole(ApplicationRoles.Teacher))
+                    {
+                        <option value="@row.RecordId" data-child-id="@row.ChildId">@row.ChildName@ficha</option>
+                    }
+                    else
+                    {
+                        <option value="@row.RecordId" data-child-id="@row.ChildId">@row.ChildName - @row.GuardianName - @row.GuardianPhone@ficha</option>
+                    }
                 }
             </select>
             <span asp-validation-for="RecordIds" class="text-danger small"></span>
@@ -30,12 +38,13 @@
             <span asp-validation-for="CheckOutGuardianId" class="text-danger small"></span>
 
             <div class="border rounded p-2 mb-2 bg-white">
-                <label class="form-label mb-1">Firma salida (opcional)</label>
+                <label class="form-label mb-1">Firma salida</label>
                 <canvas id="checkout-signature-pad" class="w-100" height="140"></canvas>
                 <input asp-for="CheckOutSignatureBase64" type="hidden" id="CheckOutSignatureBase64" />
                 <div class="mt-2 d-flex gap-2">
                     <button type="button" id="btn-clear-checkout-signature" class="btn btn-outline-secondary btn-sm">Limpiar firma</button>
                 </div>
+                <div id="checkout-signature-error" class="text-danger small mt-1 d-none">La firma de salida es requerida.</div>
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100">Registrar salida</button>
         </form>

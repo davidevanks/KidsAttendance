@@ -23,14 +23,21 @@ public class ChildrenController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(bool myGroupOnly = false)
+    public async Task<IActionResult> Index(bool myGroupOnly = false, int? classGroupId = null)
     {
         ViewBag.MyGroupOnly = myGroupOnly;
+        ViewBag.SelectedClassGroupId = classGroupId;
         var query = _dbContext.Children.AsNoTracking();
+        HashSet<int>? allowedGroups = null;
         if (User.IsInRole(ApplicationRoles.Teacher) && (!await IsGlobalTeacherAsync() || myGroupOnly))
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
+            allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(x => allowedGroups.Contains(x.CurrentClassGroupId));
+        }
+
+        if (classGroupId.HasValue)
+        {
+            query = query.Where(x => x.CurrentClassGroupId == classGroupId.Value);
         }
 
         var children = await query
@@ -81,6 +88,12 @@ public class ChildrenController : Controller
 
         var groups = await _dbContext.ClassGroups.AsNoTracking().ToDictionaryAsync(x => x.Id, x => x.Name);
         ViewBag.Groups = groups;
+
+        // Options for the group filter dropdown, restricted to the teacher's assigned groups when applicable.
+        ViewBag.GroupOptions = groups
+            .Where(x => allowedGroups is null || allowedGroups.Contains(x.Key))
+            .OrderBy(x => x.Value)
+            .ToList();
 
         foreach (var child in children)
         {
