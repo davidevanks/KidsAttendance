@@ -2,10 +2,11 @@
 @{
     ViewData["Title"] = "Niños";
     var groups = ViewBag.Groups as Dictionary<int, string> ?? new();
+    var myGroupOnly = (ViewBag.MyGroupOnly as bool?) == true;
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Niños</h1>
-    <a asp-action="Create" class="btn btn-primary">Nuevo niño</a>
+    <a asp-action="Create" asp-route-myGroupOnly="@(myGroupOnly ? "true" : null)" class="btn btn-primary">Nuevo niño</a>
 </div>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 <div class="table-responsive">
@@ -21,7 +22,7 @@
                 <td>@(item.Age?.ToString() ?? "-")</td>
                 <td>@groups.GetValueOrDefault(item.CurrentClassGroupId, $"Grupo #{item.CurrentClassGroupId}")</td>
                 <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Activo" : "Inactivo")</span></td>
-                <td class="text-end"><a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Editar</a></td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@item.Id" asp-route-myGroupOnly="@(myGroupOnly ? "true" : null)" class="btn btn-outline-primary btn-sm">Editar</a></td>
             </tr>
         }
         </tbody>

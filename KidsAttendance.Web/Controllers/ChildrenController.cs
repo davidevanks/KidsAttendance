@@ -23,10 +23,11 @@ public class ChildrenController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(bool myGroupOnly = false)
     {
+        ViewBag.MyGroupOnly = myGroupOnly;
         var query = _dbContext.Children.AsNoTracking();
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        if (User.IsInRole(ApplicationRoles.Teacher) && (!await IsGlobalTeacherAsync() || myGroupOnly))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(x => allowedGroups.Contains(x.CurrentClassGroupId));
@@ -91,10 +92,10 @@ public class ChildrenController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(bool myGroupOnly = false)
     {
-        await LoadLookupsAsync();
-        return View(new ChildCreateViewModel { IsActive = true });
+        await LoadLookupsAsync(myGroupOnly);
+        return View(new ChildCreateViewModel { IsActive = true, MyGroupOnly = myGroupOnly });
     }
 
     [HttpGet]
@@ -104,7 +105,7 @@ public class ChildrenController : Controller
             return Json(Array.Empty<object>());
 
         var query = _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalTeacherAsync())
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(g => _dbContext.ChildGuardians
@@ -130,10 +131,10 @@ public class ChildrenController : Controller
         foreach (var key in ModelState.Keys.Where(k => k.StartsWith("NewGuardians")).ToList())
             ModelState.Remove(key);
 
-        await LoadLookupsAsync();
+        await LoadLookupsAsync(model.MyGroupOnly);
         if (!ModelState.IsValid) return View(model);
 
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        if (User.IsInRole(ApplicationRoles.Teacher) && (!await IsGlobalTeacherAsync() || model.MyGroupOnly))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(model.CurrentClassGroupId))
@@ -164,11 +165,11 @@ public class ChildrenController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(int id, bool myGroupOnly = false)
     {
         var child = await _dbContext.Children.FindAsync(id);
         if (child is null) return NotFound();
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        if (User.IsInRole(ApplicationRoles.Teacher) && (!await IsGlobalTeacherAsync() || myGroupOnly))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(child.CurrentClassGroupId))
@@ -187,7 +188,7 @@ public class ChildrenController : Controller
             .Select(g => new { g.Id, g.FullName, g.PhoneNumber, g.Relationship })
             .ToList();
 
-        await LoadLookupsAsync();
+        await LoadLookupsAsync(myGroupOnly);
 
         return View(new ChildCreateViewModel
         {
@@ -197,6 +198,7 @@ public class ChildrenController : Controller
             Age = child.Age,
             CurrentClassGroupId = child.CurrentClassGroupId,
             IsActive = child.IsActive,
+            MyGroupOnly = myGroupOnly,
             SelectedGuardianIds = linkedGuardians.Select(x => x.Id).ToList(),
             SelectedGuardianRelationships = linkedGuardians.Select(x => x.Relationship).ToList()
         });
@@ -209,12 +211,12 @@ public class ChildrenController : Controller
         foreach (var key in ModelState.Keys.Where(k => k.StartsWith("NewGuardians")).ToList())
             ModelState.Remove(key);
 
-        await LoadLookupsAsync();
+        await LoadLookupsAsync(model.MyGroupOnly);
         if (!ModelState.IsValid) return View(model);
 
         var child = await _dbContext.Children.FirstOrDefaultAsync(x => x.Id == model.Id);
         if (child is null) return NotFound();
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        if (User.IsInRole(ApplicationRoles.Teacher) && (!await IsGlobalTeacherAsync() || model.MyGroupOnly))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(child.CurrentClassGroupId) || !allowedGroups.Contains(model.CurrentClassGroupId))
@@ -256,10 +258,10 @@ public class ChildrenController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task LoadLookupsAsync()
+    private async Task LoadLookupsAsync(bool myGroupOnly = false)
     {
         var groupsQuery = _dbContext.ClassGroups.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        if (User.IsInRole(ApplicationRoles.Teacher) && (!await IsGlobalTeacherAsync() || myGroupOnly))
         {
             var allowedGroups = await GetAssignedGroupIdsAsync();
             groupsQuery = groupsQuery.Where(x => allowedGroups.Contains(x.Id));
@@ -354,6 +356,13 @@ public class ChildrenController : Controller
         }
 
         await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<bool> IsGlobalTeacherAsync()
+    {
+        if (!User.IsInRole(ApplicationRoles.Teacher)) return false;
+        var user = await _userManager.GetUserAsync(User);
+        return user?.AsistenciaGlobal == true;
     }
 
     private async Task<HashSet<int>> GetAssignedGroupIdsAsync()

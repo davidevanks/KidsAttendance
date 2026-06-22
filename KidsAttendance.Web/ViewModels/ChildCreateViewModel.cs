@@ -35,4 +35,6 @@ public class ChildCreateViewModel
 
     // Inline new guardians to create and link in one shot
     public List<NewGuardianEntry> NewGuardians { get; set; } = new();
+
+    public bool MyGroupOnly { get; set; }
 }
