@@ -123,12 +123,14 @@ public class GuardiansController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = ApplicationRoles.Coordinador)]
     public IActionResult Create()
     {
         return View(new GuardianCreateViewModel { IsActive = true });
     }
 
     [HttpPost]
+    [Authorize(Roles = ApplicationRoles.Coordinador)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(GuardianCreateViewModel model)
     {
@@ -160,6 +162,7 @@ public class GuardiansController : Controller
     {
         var guardian = await _dbContext.Guardians.FindAsync(id);
         if (guardian is null) return NotFound();
+        if (!await CanAccessGuardianAsync(id)) return Forbid();
 
         return View(new GuardianCreateViewModel
         {
@@ -179,6 +182,7 @@ public class GuardiansController : Controller
 
         var guardian = await _dbContext.Guardians.FindAsync(model.Id);
         if (guardian is null) return NotFound();
+        if (!await CanAccessGuardianAsync(model.Id)) return Forbid();
 
         var duplicated = await _dbContext.Guardians.AnyAsync(x => x.Id != model.Id && x.PhoneNumber == model.PhoneNumber.Trim());
         if (duplicated)
@@ -196,6 +200,24 @@ public class GuardiansController : Controller
         await _dbContext.SaveChangesAsync();
         TempData["SuccessMessage"] = "Padre actualizado.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<bool> CanAccessGuardianAsync(int guardianId)
+    {
+        if (!User.IsInRole(ApplicationRoles.Teacher))
+        {
+            return true;
+        }
+
+        var allowedGroupIds = await GetAssignedGroupIdsAsync();
+        return await _dbContext.ChildGuardians.AsNoTracking()
+            .Where(x => x.GuardianId == guardianId)
+            .Join(
+                _dbContext.Children.AsNoTracking(),
+                childGuardian => childGuardian.ChildId,
+                child => child.Id,
+                (_, child) => child.CurrentClassGroupId)
+            .AnyAsync(classGroupId => allowedGroupIds.Contains(classGroupId));
     }
 
     private async Task<HashSet<int>> GetAssignedGroupIdsAsync()

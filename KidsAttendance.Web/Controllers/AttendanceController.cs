@@ -102,6 +102,12 @@ public class AttendanceController : Controller
             return View(model);
         }
 
+        if (!await IsGuardianLinkedToAllChildrenAsync(model.GuardianId, model.ChildIds))
+        {
+            ModelState.AddModelError(nameof(model.GuardianId), "La persona que entrega debe estar asociada a todos los niños seleccionados.");
+            return View(model);
+        }
+
         var session = await EnsureTodaySessionAsync();
         var selectedChildIds = model.ChildIds.Distinct().ToList();
         var normalizedToken = NormalizeToken(model.TokenNumber);
@@ -225,6 +231,12 @@ public class AttendanceController : Controller
             return View("CheckIn", model);
         }
 
+        if (!await IsGuardianLinkedToAllChildrenAsync(model.GuardianId, model.ChildIds))
+        {
+            ModelState.AddModelError(nameof(model.GuardianId), "La persona que entrega debe estar asociada a todos los niños seleccionados.");
+            return View("CheckIn", model);
+        }
+
         var session = await EnsureTodaySessionAsync();
         var selectedChildIds = model.ChildIds.Distinct().ToList();
         var normalizedToken = NormalizeToken(model.TokenNumber);
@@ -315,76 +327,7 @@ public class AttendanceController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> GlobalCheckOut(CheckOutViewModel model)
     {
-        if (!await IsGlobalAttendanceAsync())
-        {
-            return Forbid();
-        }
-
-        if (model.RecordIds.Count == 0)
-        {
-            TempData["ErrorMessage"] = "Seleccioná al menos un niño para registrar salida.";
-            return RedirectToAction(nameof(GlobalCheckOut));
-        }
-
-        if (string.IsNullOrWhiteSpace(model.CheckOutSignatureBase64))
-        {
-            TempData["ErrorMessage"] = "La firma de salida es requerida.";
-            return RedirectToAction(nameof(GlobalCheckOut));
-        }
-
-        var records = await _dbContext.AttendanceRecords
-            .Where(x => model.RecordIds.Contains(x.Id))
-            .ToListAsync();
-        if (records.Count != model.RecordIds.Distinct().Count() || records.Any(x => x.Status != "CheckedIn"))
-        {
-            TempData["ErrorMessage"] = "Hay registros no válidos para salida.";
-            return RedirectToAction(nameof(GlobalCheckOut));
-        }
-
-        var firstClassGroupId = records[0].ClassGroupId;
-        if (records.Any(x => x.ClassGroupId != firstClassGroupId))
-        {
-            TempData["ErrorMessage"] = "Solo podés registrar salida múltiple dentro del mismo grupo.";
-            return RedirectToAction(nameof(GlobalCheckOut));
-        }
-
-        var validGuardianIds = await _dbContext.ChildGuardians.AsNoTracking()
-            .Where(x => records.Select(r => r.ChildId).Contains(x.ChildId))
-            .Select(x => x.GuardianId)
-            .Distinct()
-            .ToListAsync();
-        if (!validGuardianIds.Contains(model.CheckOutGuardianId))
-        {
-            TempData["ErrorMessage"] = "El padre seleccionado no está asociado a los niños elegidos.";
-            return RedirectToAction(nameof(GlobalCheckOut));
-        }
-
-        try
-        {
-            var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
-            var now = DateTime.UtcNow;
-            var teacherId = _userManager.GetUserId(User);
-
-            foreach (var record in records)
-            {
-                record.CheckOutGuardianId = model.CheckOutGuardianId;
-                record.CheckOutTeacherId = teacherId;
-                record.CheckOutTime = now;
-                record.CheckOutSignatureData = checkOutSignatureData;
-                record.CheckOutSignaturePath = null;
-                record.Status = "CheckedOut";
-                record.UpdatedAt = now;
-            }
-
-            await _dbContext.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Salida registrada.";
-            return RedirectToAction(nameof(GlobalToday));
-        }
-        catch
-        {
-            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
-            return RedirectToAction(nameof(GlobalCheckOut));
-        }
+        return await ProcessCheckOutAsync(model, isGlobal: true);
     }
 
     [HttpGet]
@@ -489,81 +432,7 @@ public class AttendanceController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CheckOut(CheckOutViewModel model)
     {
-        if (model.RecordIds.Count == 0)
-        {
-            TempData["ErrorMessage"] = "Seleccioná al menos un niño para registrar salida.";
-            return RedirectToAction(nameof(CheckOut));
-        }
-
-        if (string.IsNullOrWhiteSpace(model.CheckOutSignatureBase64))
-        {
-            TempData["ErrorMessage"] = "La firma de salida es requerida.";
-            return RedirectToAction(nameof(CheckOut));
-        }
-
-        var records = await _dbContext.AttendanceRecords
-            .Where(x => model.RecordIds.Contains(x.Id))
-            .ToListAsync();
-        if (records.Count != model.RecordIds.Distinct().Count() || records.Any(x => x.Status != "CheckedIn"))
-        {
-            TempData["ErrorMessage"] = "Hay registros no válidos para salida.";
-            return RedirectToAction(nameof(CheckOut));
-        }
-
-        var firstClassGroupId = records[0].ClassGroupId;
-        if (records.Any(x => x.ClassGroupId != firstClassGroupId))
-        {
-            TempData["ErrorMessage"] = "Solo podés registrar salida múltiple dentro del mismo grupo.";
-            return RedirectToAction(nameof(CheckOut));
-        }
-
-        if (User.IsInRole(ApplicationRoles.Teacher))
-        {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(firstClassGroupId))
-            {
-                TempData["ErrorMessage"] = "No tenés permiso para registrar salida en ese grupo.";
-                return RedirectToAction(nameof(CheckOut));
-            }
-        }
-
-        var validGuardianIds = await _dbContext.ChildGuardians.AsNoTracking()
-            .Where(x => records.Select(r => r.ChildId).Contains(x.ChildId))
-            .Select(x => x.GuardianId)
-            .Distinct()
-            .ToListAsync();
-        if (!validGuardianIds.Contains(model.CheckOutGuardianId))
-        {
-            TempData["ErrorMessage"] = "El padre seleccionado no está asociado a los niños elegidos.";
-            return RedirectToAction(nameof(CheckOut));
-        }
-
-        try
-        {
-            var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
-            var now = DateTime.UtcNow;
-            var teacherId = _userManager.GetUserId(User);
-
-            foreach (var record in records)
-            {
-                record.CheckOutGuardianId = model.CheckOutGuardianId;
-                record.CheckOutTeacherId = teacherId;
-                record.CheckOutTime = now;
-                record.CheckOutSignatureData = checkOutSignatureData;
-                record.CheckOutSignaturePath = null;
-                record.Status = "CheckedOut";
-                record.UpdatedAt = now;
-            }
-
-            await _dbContext.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Salida registrada.";
-            return RedirectToAction(nameof(Today));
-        }
-        catch
-        {
-            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
-            return RedirectToAction(nameof(CheckOut));
-        }
+        return await ProcessCheckOutAsync(model, isGlobal: false);
     }
 
     [HttpGet]
@@ -675,20 +544,16 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> SearchGuardianByPhone(string term, int classGroupId)
+    public async Task<IActionResult> SearchGuardianByPhone(string term, int classGroupId, bool isGlobal = false)
     {
         if (string.IsNullOrWhiteSpace(term))
         {
             return Json(Array.Empty<object>());
         }
 
-        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
+        if (!await CanAccessAttendanceGroupAsync(classGroupId, isGlobal))
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(classGroupId))
-            {
-                return Forbid();
-            }
+            return Forbid();
         }
 
         var guardianIdsInGroupQuery = _dbContext.ChildGuardians.AsNoTracking()
@@ -711,7 +576,7 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetChildrenByGuardianAndGroup(int guardianId, int classGroupId)
+    public async Task<IActionResult> GetChildrenByGuardianAndGroup(int guardianId, int classGroupId, bool isGlobal = false)
     {
         var query = _dbContext.ChildGuardians
             .AsNoTracking()
@@ -721,13 +586,9 @@ public class AttendanceController : Controller
             .Select(c => new { c.Id, c.FullName })
             .Distinct();
 
-        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
+        if (!await CanAccessAttendanceGroupAsync(classGroupId, isGlobal))
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(classGroupId))
-            {
-                return Forbid();
-            }
+            return Forbid();
         }
 
         var data = await query.OrderBy(x => x.FullName).ToListAsync();
@@ -735,7 +596,10 @@ public class AttendanceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetGuardiansForChildren(string childIds)
+    public async Task<IActionResult> GetGuardiansForChildren(
+        string childIds,
+        bool authorizedPickupOnly = false,
+        bool isGlobal = false)
     {
         var ids = childIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(x => int.TryParse(x, out var id) ? id : 0)
@@ -747,34 +611,57 @@ public class AttendanceController : Controller
             return Json(Array.Empty<object>());
         }
 
-        var guardians = await _dbContext.ChildGuardians.AsNoTracking()
-            .Where(x => ids.Contains(x.ChildId))
-            .Join(_dbContext.Guardians.AsNoTracking().Where(g => g.IsActive),
-                cg => cg.GuardianId,
-                g => g.Id,
-                (cg, g) => new { g.Id, g.FullName, g.PhoneNumber })
-            .Distinct()
+        var children = await _dbContext.Children.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new { x.Id, x.CurrentClassGroupId })
+            .ToListAsync();
+        if (children.Count != ids.Count || children.Select(x => x.CurrentClassGroupId).Distinct().Count() != 1)
+        {
+            return BadRequest(new { message = "Los niños seleccionados no son válidos o no pertenecen al mismo grupo." });
+        }
+
+        var classGroupId = children[0].CurrentClassGroupId;
+        if (!await CanAccessAttendanceGroupAsync(classGroupId, isGlobal))
+        {
+            return Forbid();
+        }
+
+        var relationshipsQuery = _dbContext.ChildGuardians.AsNoTracking()
+            .Where(x => ids.Contains(x.ChildId));
+        if (authorizedPickupOnly)
+        {
+            relationshipsQuery = relationshipsQuery.Where(x => x.IsAuthorizedPickup);
+        }
+
+        var relationships = await relationshipsQuery
+            .Select(x => new { x.ChildId, x.GuardianId })
+            .ToListAsync();
+        var commonGuardianIds = relationships
+            .GroupBy(x => x.GuardianId)
+            .Where(group => group.Select(x => x.ChildId).Distinct().Count() == ids.Count)
+            .Select(group => group.Key)
+            .ToList();
+
+        var guardians = await _dbContext.Guardians.AsNoTracking()
+            .Where(x => x.IsActive && commonGuardianIds.Contains(x.Id))
             .OrderBy(x => x.FullName)
+            .Select(x => new { x.Id, x.FullName, x.PhoneNumber })
             .ToListAsync();
 
         return Json(guardians);
     }
 
     [HttpGet]
-    public async Task<IActionResult> SearchChildren(string term, int classGroupId)
+    public async Task<IActionResult> SearchChildren(string term, int classGroupId, bool isGlobal = false)
     {
         if (string.IsNullOrWhiteSpace(term) || term.Trim().Length < 2 || classGroupId <= 0)
         {
             return Json(Array.Empty<object>());
         }
 
-        if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
+        if (!await CanAccessAttendanceGroupAsync(classGroupId, isGlobal))
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(classGroupId))
-            {
-                return Json(Array.Empty<object>());
-            }
+            return Json(Array.Empty<object>());
         }
 
         var normalized = term.Trim();
@@ -791,7 +678,11 @@ public class AttendanceController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RegisterDropoffGuardian(string fullName, string phoneNumber, string childIds)
+    public async Task<IActionResult> RegisterDropoffGuardian(
+        string fullName,
+        string phoneNumber,
+        string childIds,
+        bool isGlobal = false)
     {
         if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(childIds))
         {
@@ -813,6 +704,21 @@ public class AttendanceController : Controller
         if (ids.Count == 0)
         {
             return BadRequest(new { success = false, message = "Seleccioná al menos un niño." });
+        }
+
+        var children = await _dbContext.Children.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new { x.Id, x.CurrentClassGroupId, x.IsActive })
+            .ToListAsync();
+        if (children.Count != ids.Count || children.Any(x => !x.IsActive) ||
+            children.Select(x => x.CurrentClassGroupId).Distinct().Count() != 1)
+        {
+            return BadRequest(new { success = false, message = "Los niños seleccionados no son válidos o no pertenecen al mismo grupo." });
+        }
+
+        if (!await CanAccessAttendanceGroupAsync(children[0].CurrentClassGroupId, isGlobal))
+        {
+            return Forbid();
         }
 
         var guardian = await _dbContext.Guardians.FirstOrDefaultAsync(x => x.PhoneNumber == normalizedPhone);
@@ -848,6 +754,129 @@ public class AttendanceController : Controller
 
         await _dbContext.SaveChangesAsync();
         return Json(new { success = true, guardianId = guardian.Id, fullName = guardian.FullName, phoneNumber = guardian.PhoneNumber });
+    }
+
+    private async Task<IActionResult> ProcessCheckOutAsync(CheckOutViewModel model, bool isGlobal)
+    {
+        var checkOutAction = isGlobal ? nameof(GlobalCheckOut) : nameof(CheckOut);
+        var todayAction = isGlobal ? nameof(GlobalToday) : nameof(Today);
+
+        if (isGlobal && !await IsGlobalAttendanceAsync())
+        {
+            return Forbid();
+        }
+
+        if (model.RecordIds.Count == 0)
+        {
+            TempData["ErrorMessage"] = "Seleccioná al menos un niño para registrar salida.";
+            return RedirectToAction(checkOutAction);
+        }
+
+        if (string.IsNullOrWhiteSpace(model.CheckOutSignatureBase64))
+        {
+            TempData["ErrorMessage"] = "La firma de salida es requerida.";
+            return RedirectToAction(checkOutAction);
+        }
+
+        var session = await EnsureTodaySessionAsync();
+        var recordIds = model.RecordIds.Distinct().ToList();
+        var records = await _dbContext.AttendanceRecords
+            .Where(x => recordIds.Contains(x.Id) && x.AttendanceSessionId == session.Id)
+            .ToListAsync();
+        if (records.Count != recordIds.Count || records.Any(x => x.Status != "CheckedIn"))
+        {
+            TempData["ErrorMessage"] = "Hay registros no válidos para la salida de hoy.";
+            return RedirectToAction(checkOutAction);
+        }
+
+        var classGroupId = records[0].ClassGroupId;
+        if (records.Any(x => x.ClassGroupId != classGroupId))
+        {
+            TempData["ErrorMessage"] = "Solo podés registrar salida múltiple dentro del mismo grupo.";
+            return RedirectToAction(checkOutAction);
+        }
+
+        if (!await CanAccessAttendanceGroupAsync(classGroupId, isGlobal))
+        {
+            return Forbid();
+        }
+
+        var childIds = records.Select(x => x.ChildId).Distinct().ToList();
+        var authorizedChildCount = await _dbContext.ChildGuardians.AsNoTracking()
+            .Where(x => childIds.Contains(x.ChildId) &&
+                        x.GuardianId == model.CheckOutGuardianId &&
+                        x.IsAuthorizedPickup)
+            .Join(
+                _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive),
+                childGuardian => childGuardian.GuardianId,
+                guardian => guardian.Id,
+                (childGuardian, _) => childGuardian.ChildId)
+            .Distinct()
+            .CountAsync();
+        if (authorizedChildCount != childIds.Count)
+        {
+            TempData["ErrorMessage"] = "La persona seleccionada debe estar autorizada para retirar a todos los niños elegidos.";
+            return RedirectToAction(checkOutAction);
+        }
+
+        try
+        {
+            var checkOutSignatureData = _signatureService.DecodeBase64Signature(model.CheckOutSignatureBase64);
+            var now = DateTime.UtcNow;
+            var teacherId = _userManager.GetUserId(User);
+
+            foreach (var record in records)
+            {
+                record.CheckOutGuardianId = model.CheckOutGuardianId;
+                record.CheckOutTeacherId = teacherId;
+                record.CheckOutTime = now;
+                record.CheckOutSignatureData = checkOutSignatureData;
+                record.CheckOutSignaturePath = null;
+                record.Status = "CheckedOut";
+                record.UpdatedAt = now;
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Salida registrada.";
+            return RedirectToAction(todayAction);
+        }
+        catch
+        {
+            TempData["ErrorMessage"] = "Error al hacer registro. contacte soporte.";
+            return RedirectToAction(checkOutAction);
+        }
+    }
+
+    private async Task<bool> CanAccessAttendanceGroupAsync(int classGroupId, bool isGlobal)
+    {
+        if (isGlobal)
+        {
+            return await IsGlobalAttendanceAsync();
+        }
+
+        if (!User.IsInRole(ApplicationRoles.Teacher))
+        {
+            return true;
+        }
+
+        var allowedGroups = await GetAssignedGroupIdsAsync();
+        return allowedGroups.Contains(classGroupId);
+    }
+
+    private async Task<bool> IsGuardianLinkedToAllChildrenAsync(int guardianId, IEnumerable<int> childIds)
+    {
+        var distinctChildIds = childIds.Distinct().ToList();
+        var linkedChildCount = await _dbContext.ChildGuardians.AsNoTracking()
+            .Where(x => distinctChildIds.Contains(x.ChildId) && x.GuardianId == guardianId)
+            .Join(
+                _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive),
+                childGuardian => childGuardian.GuardianId,
+                guardian => guardian.Id,
+                (childGuardian, _) => childGuardian.ChildId)
+            .Distinct()
+            .CountAsync();
+
+        return linkedChildCount == distinctChildIds.Count;
     }
 
     private async Task<AttendanceSession> EnsureTodaySessionAsync()

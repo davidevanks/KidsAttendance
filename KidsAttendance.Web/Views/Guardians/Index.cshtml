@@ -5,7 +5,10 @@
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Padres</h1>
-    <a asp-action="Create" class="btn btn-primary">Nuevo padre</a>
+    @if (User.IsInRole(ApplicationRoles.Coordinador))
+    {
+        <a asp-action="Create" class="btn btn-primary">Nuevo padre</a>
+    }
 </div>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
 @if (teacherNoGroup) { <div class="alert alert-warning">No tenés grupo activo asignado.</div> }

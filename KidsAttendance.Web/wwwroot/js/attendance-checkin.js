@@ -6,6 +6,7 @@ $(function () {
 
     var form = $("#checkin-form");
     var hidePhone = form.data("hide-phone") === true || form.data("hide-phone") === "true";
+    var isGlobal = form.data("is-global") === true || form.data("is-global") === "true";
     var childSelect = $("#ChildIds");
     var guardianSelect = $("#GuardianId");
     var classGroupInput = $("#ClassGroupId");
@@ -48,7 +49,10 @@ $(function () {
             return;
         }
 
-        $.get("/Attendance/GetGuardiansForChildren", { childIds: ids.join(",") })
+        $.get("/Attendance/GetGuardiansForChildren", {
+            childIds: ids.join(","),
+            isGlobal: isGlobal
+        })
             .done(function (data) {
                 populateGuardianSelect(Array.isArray(data) ? data : []);
             });
@@ -74,7 +78,8 @@ $(function () {
             data: function (params) {
                 return {
                     term: params.term,
-                    classGroupId: getClassGroupId()
+                    classGroupId: getClassGroupId(),
+                    isGlobal: isGlobal
                 };
             },
             processResults: function (data) {
@@ -134,7 +139,8 @@ $(function () {
                 __RequestVerificationToken: antiForgeryToken,
                 fullName: name,
                 phoneNumber: phone,
-                childIds: ids.join(",")
+                childIds: ids.join(","),
+                isGlobal: isGlobal
             }
         }).done(function (result) {
             if (!result || !result.success) {

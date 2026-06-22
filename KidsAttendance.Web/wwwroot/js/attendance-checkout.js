@@ -7,6 +7,7 @@ $(function () {
     var guardianSelect = $("#CheckOutGuardianId");
     var form = $("#checkout-form");
     var hidePhone = form.data("hide-phone") === true || form.data("hide-phone") === "true";
+    var isGlobal = form.data("is-global") === true || form.data("is-global") === "true";
 
     recordSelect.select2({
         theme: "bootstrap-5",
@@ -34,7 +35,11 @@ $(function () {
             return;
         }
 
-        $.get("/Attendance/GetGuardiansForChildren", { childIds: childIds.join(",") })
+        $.get("/Attendance/GetGuardiansForChildren", {
+            childIds: childIds.join(","),
+            authorizedPickupOnly: true,
+            isGlobal: isGlobal
+        })
             .done(function (data) {
                 if (!Array.isArray(data)) {
                     return;
