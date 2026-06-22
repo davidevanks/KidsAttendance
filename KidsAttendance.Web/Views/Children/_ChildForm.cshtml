@@ -50,7 +50,7 @@
                              data-id="@g.Id" data-phone="@g.PhoneNumber" data-name="@g.FullName" data-type="existing">
                             <div class="flex-grow-1">
                                 <span class="fw-semibold">@g.FullName</span>
-                                <span class="text-muted small ms-1">· @g.PhoneNumber</span>
+                                @if (!User.IsInRole(ApplicationRoles.Teacher)) { <span class="text-muted small ms-1">· @g.PhoneNumber</span> }
                             </div>
                             <select class="form-select form-select-sm w-auto guardian-rel-select">
                                 @foreach (var r in relationships)

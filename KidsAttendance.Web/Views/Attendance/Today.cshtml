@@ -46,7 +46,7 @@
                 {
                     <th data-priority="2">Grupo</th>
                 }
-                <th data-priority="1">Nombre padre</th><th data-priority="5">Telefono padre</th><th data-priority="1">Nombre nino</th><th data-priority="3">Ficha</th><th data-priority="1">Status</th><th data-priority="5">Firma entrada</th><th data-priority="5">Firma salida</th>
+                <th data-priority="1">Nombre padre</th>@if (!isTeacher) { <th data-priority="5">Telefono padre</th> }<th data-priority="1">Nombre nino</th><th data-priority="3">Ficha</th><th data-priority="1">Status</th><th data-priority="5">Firma entrada</th><th data-priority="5">Firma salida</th>
             </tr>
         </thead>
         <tbody>
@@ -58,7 +58,7 @@
                     <td>@r.ClassGroupName</td>
                 }
                 <td>@r.GuardianName</td>
-                <td>@r.GuardianPhone</td>
+                @if (!isTeacher) { <td>@r.GuardianPhone</td> }
                 <td>@r.ChildName</td>
                 <td>@r.TokenNumber</td>
                 <td>@r.DisplayStatus</td>
