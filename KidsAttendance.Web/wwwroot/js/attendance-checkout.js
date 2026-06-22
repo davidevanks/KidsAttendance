@@ -23,10 +23,17 @@ $(function () {
 
     function loadGuardiansByChildren() {
         var childIds = [];
+        var checkInGuardianIds = [];
+        var selectedGuardianId = guardianSelect.val();
         (recordSelect.find(":selected") || []).each(function () {
             var childId = $(this).data("child-id");
             if (childId) {
                 childIds.push(childId);
+            }
+
+            var checkInGuardianId = $(this).data("check-in-guardian-id");
+            if (checkInGuardianId && checkInGuardianIds.indexOf(String(checkInGuardianId)) === -1) {
+                checkInGuardianIds.push(String(checkInGuardianId));
             }
         });
 
@@ -50,13 +57,37 @@ $(function () {
                     guardianSelect.append($("<option>", { value: item.id, text: text }));
                 });
 
-                if (data.length === 1) {
-                    guardianSelect.val(String(data[0].id)).trigger("change");
-                } else {
-                    guardianSelect.trigger("change");
-                }
+                var availableGuardianIds = data.map(function (item) { return String(item.id); });
+                var checkInGuardianId = checkInGuardianIds.length === 1 ? checkInGuardianIds[0] : null;
+                var guardianIdToSelect = availableGuardianIds.indexOf(String(selectedGuardianId)) !== -1
+                    ? String(selectedGuardianId)
+                    : checkInGuardianId && availableGuardianIds.indexOf(checkInGuardianId) !== -1
+                        ? checkInGuardianId
+                        : "";
+
+                guardianSelect.val(guardianIdToSelect).trigger("change");
             });
     }
+
+    recordSelect.on("select2:selecting", function (event) {
+        var selectedOption = recordSelect.find('option[value="' + event.params.args.data.id + '"]');
+        var incomingGuardianId = String(selectedOption.data("check-in-guardian-id"));
+        var hasDifferentGuardian = recordSelect.find(":selected").toArray().some(function (option) {
+            return String($(option).data("check-in-guardian-id")) !== incomingGuardianId;
+        });
+
+        if (hasDifferentGuardian) {
+            event.preventDefault();
+            $("#checkout-mixed-guardians-error").removeClass("d-none");
+            return;
+        }
+
+        $("#checkout-mixed-guardians-error").addClass("d-none");
+    });
+
+    recordSelect.on("select2:unselect", function () {
+        $("#checkout-mixed-guardians-error").addClass("d-none");
+    });
 
     recordSelect.on("change", loadGuardiansByChildren);
     loadGuardiansByChildren();

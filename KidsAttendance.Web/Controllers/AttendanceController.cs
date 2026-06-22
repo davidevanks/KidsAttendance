@@ -796,6 +796,12 @@ public class AttendanceController : Controller
             return RedirectToAction(checkOutAction);
         }
 
+        if (records.Select(x => x.CheckInGuardianId).Distinct().Count() != 1)
+        {
+            TempData["ErrorMessage"] = "Solo podés registrar juntos niños que hayan ingresado con el mismo padre.";
+            return RedirectToAction(checkOutAction);
+        }
+
         if (!await CanAccessAttendanceGroupAsync(classGroupId, isGlobal))
         {
             return Forbid();
@@ -931,6 +937,7 @@ public class AttendanceController : Controller
             {
                 RecordId = x.a.Id,
                 ChildId = x.a.ChildId,
+                CheckInGuardianId = x.a.CheckInGuardianId,
                 ClassGroupId = x.a.ClassGroupId,
                 ChildName = x.c.FullName,
                 GuardianName = g.FullName,
@@ -1022,6 +1029,7 @@ public class AttendanceController : Controller
     {
         public int RecordId { get; set; }
         public int ChildId { get; set; }
+        public int CheckInGuardianId { get; set; }
         public int ClassGroupId { get; set; }
         public string ChildName { get; set; } = string.Empty;
         public string GuardianName { get; set; } = string.Empty;

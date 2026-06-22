@@ -25,15 +25,18 @@
                     var ficha = string.IsNullOrWhiteSpace(row.TokenNumber) ? "" : $" - Ficha: {row.TokenNumber}";
                     if (User.IsInRole(ApplicationRoles.Teacher))
                     {
-                        <option value="@row.RecordId" data-child-id="@row.ChildId">@row.ChildName@ficha</option>
+                        <option value="@row.RecordId" data-child-id="@row.ChildId" data-check-in-guardian-id="@row.CheckInGuardianId">@row.ChildName@ficha</option>
                     }
                     else
                     {
-                        <option value="@row.RecordId" data-child-id="@row.ChildId">@row.ChildName - @row.GuardianName - @row.GuardianPhone@ficha</option>
+                        <option value="@row.RecordId" data-child-id="@row.ChildId" data-check-in-guardian-id="@row.CheckInGuardianId">@row.ChildName - @row.GuardianName - @row.GuardianPhone@ficha</option>
                     }
                 }
             </select>
             <span asp-validation-for="RecordIds" class="text-danger small"></span>
+            <div id="checkout-mixed-guardians-error" class="text-danger small mb-2 d-none">
+                Solo podés retirar juntos niños que hayan ingresado con el mismo padre.
+            </div>
 
             <label asp-for="CheckOutGuardianId" class="form-label">Padre que retira</label>
             <select asp-for="CheckOutGuardianId" id="CheckOutGuardianId" class="form-select form-select-lg mb-3">
