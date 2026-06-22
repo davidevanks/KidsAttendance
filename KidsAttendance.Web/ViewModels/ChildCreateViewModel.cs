@@ -19,6 +19,10 @@ public class ChildCreateViewModel
     [Display(Name = "Edad")]
     public int? Age { get; set; }
 
+    // Sexo opcional: true = hombre, false = mujer, null = sin especificar.
+    [Display(Name = "Sexo")]
+    public bool? Sex { get; set; }
+
     [Required(ErrorMessage = "El grupo actual es requerido.")]
     [Range(1, int.MaxValue, ErrorMessage = "Seleccioná un grupo válido.")]
     [Display(Name = "Grupo actual")]

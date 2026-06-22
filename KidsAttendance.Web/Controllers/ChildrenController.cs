@@ -161,6 +161,7 @@ public class ChildrenController : Controller
             FullName = model.FullName.Trim(),
             BirthDate = model.BirthDate,
             Age = model.Age,
+            Sex = model.Sex,
             CurrentClassGroupId = model.CurrentClassGroupId,
             IsActive = model.IsActive,
             CreatedAt = DateTime.UtcNow
@@ -209,6 +210,7 @@ public class ChildrenController : Controller
             FullName = child.FullName,
             BirthDate = child.BirthDate,
             Age = child.Age,
+            Sex = child.Sex,
             CurrentClassGroupId = child.CurrentClassGroupId,
             IsActive = child.IsActive,
             MyGroupOnly = myGroupOnly,
@@ -242,6 +244,7 @@ public class ChildrenController : Controller
         child.FullName = model.FullName.Trim();
         child.BirthDate = model.BirthDate;
         child.Age = model.Age;
+        child.Sex = model.Sex;
         child.IsActive = model.IsActive;
         child.UpdatedAt = DateTime.UtcNow;
 
