@@ -28,11 +28,10 @@ public class ChildrenController : Controller
         ViewBag.MyGroupOnly = myGroupOnly;
         ViewBag.SelectedClassGroupId = classGroupId;
         var query = _dbContext.Children.AsNoTracking();
-        HashSet<int>? allowedGroups = null;
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        var restrictedGroupIds = await GetRestrictedGroupIdsAsync(myGroupOnly);
+        if (restrictedGroupIds is not null)
         {
-            allowedGroups = await GetAssignedGroupIdsAsync();
-            query = query.Where(x => allowedGroups.Contains(x.CurrentClassGroupId));
+            query = query.Where(x => restrictedGroupIds.Contains(x.CurrentClassGroupId));
         }
 
         if (classGroupId.HasValue)
@@ -91,7 +90,7 @@ public class ChildrenController : Controller
 
         // Options for the group filter dropdown, restricted to the teacher's assigned groups when applicable.
         ViewBag.GroupOptions = groups
-            .Where(x => allowedGroups is null || allowedGroups.Contains(x.Key))
+            .Where(x => restrictedGroupIds is null || restrictedGroupIds.Contains(x.Key))
             .OrderBy(x => x.Value)
             .ToList();
 
@@ -112,18 +111,18 @@ public class ChildrenController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> SearchGuardians(string term)
+    public async Task<IActionResult> SearchGuardians(string term, bool myGroupOnly = false)
     {
         if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
             return Json(Array.Empty<object>());
 
         var query = _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        var restrictedGroupIds = await GetRestrictedGroupIdsAsync(myGroupOnly);
+        if (restrictedGroupIds is not null)
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
             query = query.Where(g => _dbContext.ChildGuardians
                 .Any(cg => cg.GuardianId == g.Id &&
-                           _dbContext.Children.Any(c => c.Id == cg.ChildId && allowedGroups.Contains(c.CurrentClassGroupId))));
+                           _dbContext.Children.Any(c => c.Id == cg.ChildId && restrictedGroupIds.Contains(c.CurrentClassGroupId))));
         }
 
         var results = await query
@@ -147,15 +146,15 @@ public class ChildrenController : Controller
         await LoadLookupsAsync(model.MyGroupOnly);
         if (!ModelState.IsValid) return View(model);
 
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        var restrictedGroupIds = await GetRestrictedGroupIdsAsync(model.MyGroupOnly);
+        if (restrictedGroupIds is not null)
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(model.CurrentClassGroupId))
+            if (!restrictedGroupIds.Contains(model.CurrentClassGroupId))
             {
                 return Forbid();
             }
 
-            if (!await CanAccessSelectedGuardiansAsync(model.SelectedGuardianIds, allowedGroups))
+            if (!await CanAccessSelectedGuardiansAsync(model.SelectedGuardianIds, restrictedGroupIds))
             {
                 return Forbid();
             }
@@ -188,10 +187,10 @@ public class ChildrenController : Controller
     {
         var child = await _dbContext.Children.FindAsync(id);
         if (child is null) return NotFound();
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        var restrictedGroupIds = await GetRestrictedGroupIdsAsync(myGroupOnly);
+        if (restrictedGroupIds is not null)
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(child.CurrentClassGroupId))
+            if (!restrictedGroupIds.Contains(child.CurrentClassGroupId))
             {
                 return Forbid();
             }
@@ -236,15 +235,15 @@ public class ChildrenController : Controller
 
         var child = await _dbContext.Children.FirstOrDefaultAsync(x => x.Id == model.Id);
         if (child is null) return NotFound();
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        var restrictedGroupIds = await GetRestrictedGroupIdsAsync(model.MyGroupOnly);
+        if (restrictedGroupIds is not null)
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(child.CurrentClassGroupId) || !allowedGroups.Contains(model.CurrentClassGroupId))
+            if (!restrictedGroupIds.Contains(child.CurrentClassGroupId) || !restrictedGroupIds.Contains(model.CurrentClassGroupId))
             {
                 return Forbid();
             }
 
-            if (!await CanAccessSelectedGuardiansAsync(model.SelectedGuardianIds, allowedGroups))
+            if (!await CanAccessSelectedGuardiansAsync(model.SelectedGuardianIds, restrictedGroupIds))
             {
                 return Forbid();
             }
@@ -287,10 +286,10 @@ public class ChildrenController : Controller
     private async Task LoadLookupsAsync(bool myGroupOnly = false)
     {
         var groupsQuery = _dbContext.ClassGroups.AsNoTracking().Where(x => x.IsActive);
-        if (User.IsInRole(ApplicationRoles.Teacher))
+        var restrictedGroupIds = await GetRestrictedGroupIdsAsync(myGroupOnly);
+        if (restrictedGroupIds is not null)
         {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            groupsQuery = groupsQuery.Where(x => allowedGroups.Contains(x.Id));
+            groupsQuery = groupsQuery.Where(x => restrictedGroupIds.Contains(x.Id));
         }
 
         var groups = await groupsQuery.OrderBy(x => x.MinAge).ToListAsync();
@@ -422,5 +421,32 @@ public class ChildrenController : Controller
             .Where(x => x.TeacherUserId == userId && x.IsActive)
             .Select(x => x.ClassGroupId)
             .ToHashSetAsync();
+    }
+
+    private async Task<HashSet<int>?> GetRestrictedGroupIdsAsync(bool myGroupOnly)
+    {
+        if (!User.IsInRole(ApplicationRoles.Teacher))
+        {
+            return null;
+        }
+
+        if (!myGroupOnly && await HasGlobalAttendanceAsync())
+        {
+            return null;
+        }
+
+        return await GetAssignedGroupIdsAsync();
+    }
+
+    private async Task<bool> HasGlobalAttendanceAsync()
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        return user?.AsistenciaGlobal == true;
     }
 }

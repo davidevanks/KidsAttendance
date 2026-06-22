@@ -1,5 +1,6 @@
 $(function () {
     var RELATIONSHIPS = ["Padre", "Madre", "Abuel@", "Herman@", "Tutor"];
+    var myGroupOnly = String($("#MyGroupOnly").val()).toLowerCase() === "true";
 
     // ── Guardian search (Select2 AJAX) ──────────────────────────────────────
     var $search = $("#guardian-search");
@@ -14,7 +15,12 @@ $(function () {
                 url: "/Children/SearchGuardians",
                 dataType: "json",
                 delay: 300,
-                data: function (params) { return { term: params.term }; },
+                data: function (params) {
+                    return {
+                        term: params.term,
+                        myGroupOnly: myGroupOnly
+                    };
+                },
                 processResults: function (data) {
                     return {
                         results: data.map(function (g) {
