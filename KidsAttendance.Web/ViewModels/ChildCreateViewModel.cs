@@ -27,5 +27,12 @@ public class ChildCreateViewModel
     [Display(Name = "Activo")]
     public bool IsActive { get; set; } = true;
 
+    // IDs of existing guardians selected from search
     public List<int> SelectedGuardianIds { get; set; } = new();
+
+    // Relationship label for each existing guardian (parallel to SelectedGuardianIds by index)
+    public List<string> SelectedGuardianRelationships { get; set; } = new();
+
+    // Inline new guardians to create and link in one shot
+    public List<NewGuardianEntry> NewGuardians { get; set; } = new();
 }

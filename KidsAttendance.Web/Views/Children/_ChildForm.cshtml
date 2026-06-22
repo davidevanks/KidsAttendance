@@ -1,18 +1,21 @@
 @model KidsAttendance.Web.ViewModels.ChildCreateViewModel
 @{
-    var guardians = ViewBag.Guardians as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Guardian> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.Guardian>();
+    var linkedGuardians = ViewBag.LinkedGuardians as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var relationships = new[] { "Padre", "Madre", "Abuel@", "Herman@", "Tutor" };
 }
 <div class="card shadow-sm">
     <div class="card-body">
-        <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+        <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post" id="child-form">
             @Html.AntiForgeryToken()
             <input asp-for="Id" type="hidden" />
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
             <div class="mb-3">
-                <label asp-for="FullName" class="form-label"></label>
+                <label asp-for="FullName" class="form-label fw-semibold"></label>
                 <input asp-for="FullName" class="form-control form-control-lg" />
                 <span asp-validation-for="FullName" class="text-danger small"></span>
             </div>
+
             <div class="row g-2">
                 <div class="col-6">
                     <label asp-for="BirthDate" class="form-label"></label>
@@ -25,25 +28,98 @@
                     <span asp-validation-for="Age" class="text-danger small"></span>
                 </div>
             </div>
+
             <div class="mt-3">
-                <label asp-for="CurrentClassGroupId" class="form-label"></label>
+                <label asp-for="CurrentClassGroupId" class="form-label fw-semibold"></label>
                 <select asp-for="CurrentClassGroupId" class="form-select form-select-lg" asp-items="ViewBag.ClassGroups"></select>
                 <span asp-validation-for="CurrentClassGroupId" class="text-danger small"></span>
             </div>
-            <div class="mt-3">
-                <label class="form-label">Padres asociados</label>
-                <select asp-for="SelectedGuardianIds" class="form-select js-guardian-select" multiple size="8" data-placeholder="Buscar padre por nombre o celular">
-                    @foreach (var guardian in guardians)
+
+            @* ── Sección tutores ── *@
+            <div class="mt-4">
+                <label class="form-label fw-semibold">Padres / Tutores</label>
+
+                @* Hidden fields serialized by JS before submit *@
+                <div id="guardian-hidden-fields"></div>
+
+                @* Cards of linked guardians *@
+                <div id="guardian-list" class="d-flex flex-column gap-2 mb-3">
+                    @foreach (var g in linkedGuardians)
                     {
-                        <option value="@guardian.Id">@guardian.FullName - @guardian.PhoneNumber</option>
+                        <div class="guardian-card card border-0 bg-light px-3 py-2 d-flex flex-row align-items-center gap-2"
+                             data-id="@g.Id" data-phone="@g.PhoneNumber" data-name="@g.FullName" data-type="existing">
+                            <div class="flex-grow-1">
+                                <span class="fw-semibold">@g.FullName</span>
+                                <span class="text-muted small ms-1">· @g.PhoneNumber</span>
+                            </div>
+                            <select class="form-select form-select-sm w-auto guardian-rel-select">
+                                @foreach (var r in relationships)
+                                {
+                                    if (r == (string)g.Relationship)
+                                    {
+                                        <option value="@r" selected>@r</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@r">@r</option>
+                                    }
+                                }
+                            </select>
+                            <button type="button" class="btn btn-sm btn-outline-danger guardian-remove" title="Quitar">&times;</button>
+                        </div>
                     }
-                </select>
-                <div class="form-text">Podés seleccionar varios padres.</div>
+                </div>
+
+                @* Search existing guardian *@
+                <div class="input-group mb-2">
+                    <select id="guardian-search" class="form-select" style="display:none;"
+                            data-placeholder="Buscar tutor por nombre o celular..."></select>
+                </div>
+
+                @* Toggle inline new guardian form *@
+                <button type="button" id="btn-add-guardian" class="btn btn-outline-primary btn-sm">
+                    + Agregar tutor nuevo
+                </button>
+
+                <div id="new-guardian-panel" class="card border-primary mt-2 p-3" style="display:none;">
+                    <div class="mb-2">
+                        <label class="form-label form-label-sm">Nombre completo *</label>
+                        <input type="text" id="ng-name" class="form-control form-control-sm" maxlength="150" />
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label form-label-sm">Celular *</label>
+                            <input type="tel" id="ng-phone" class="form-control form-control-sm" inputmode="numeric"
+                                   pattern="\d{8,15}" maxlength="15" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label form-label-sm">Celular secundario</label>
+                            <input type="tel" id="ng-phone2" class="form-control form-control-sm" inputmode="numeric"
+                                   pattern="\d{8,15}" maxlength="15" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label form-label-sm">Relación *</label>
+                        <select id="ng-rel" class="form-select form-select-sm">
+                            @foreach (var r in relationships)
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        </select>
+                    </div>
+                    <div id="ng-error" class="text-danger small mb-2" style="display:none;"></div>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="btn-ng-confirm" class="btn btn-primary btn-sm">Agregar</button>
+                        <button type="button" id="btn-ng-cancel" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                    </div>
+                </div>
             </div>
+
             <div class="form-check mt-3">
                 <input asp-for="IsActive" class="form-check-input" />
                 <label asp-for="IsActive" class="form-check-label"></label>
             </div>
+
             <div class="d-flex gap-2 mt-3">
                 <button type="submit" class="btn btn-primary btn-lg">Guardar</button>
                 <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancelar</a>

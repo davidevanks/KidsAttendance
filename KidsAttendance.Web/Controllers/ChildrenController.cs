@@ -97,10 +97,39 @@ public class ChildrenController : Controller
         return View(new ChildCreateViewModel { IsActive = true });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> SearchGuardians(string term)
+    {
+        if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
+            return Json(Array.Empty<object>());
+
+        var query = _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive);
+        if (User.IsInRole(ApplicationRoles.Teacher))
+        {
+            var allowedGroups = await GetAssignedGroupIdsAsync();
+            query = query.Where(g => _dbContext.ChildGuardians
+                .Any(cg => cg.GuardianId == g.Id &&
+                           _dbContext.Children.Any(c => c.Id == cg.ChildId && allowedGroups.Contains(c.CurrentClassGroupId))));
+        }
+
+        var results = await query
+            .Where(x => x.FullName.Contains(term) || x.PhoneNumber.Contains(term))
+            .OrderBy(x => x.FullName)
+            .Take(20)
+            .Select(x => new { x.Id, x.FullName, x.PhoneNumber })
+            .ToListAsync();
+
+        return Json(results);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ChildCreateViewModel model)
     {
+        // Remove server-side validation for NewGuardians list items — handled by JS before submit
+        foreach (var key in ModelState.Keys.Where(k => k.StartsWith("NewGuardians")).ToList())
+            ModelState.Remove(key);
+
         await LoadLookupsAsync();
         if (!ModelState.IsValid) return View(model);
 
@@ -125,7 +154,11 @@ public class ChildrenController : Controller
         _dbContext.Children.Add(child);
         await _dbContext.SaveChangesAsync();
 
-        await SyncGuardiansAsync(child.Id, model.SelectedGuardianIds);
+        var newGuardianIds = await CreateNewGuardiansAsync(model.NewGuardians);
+        var allGuardianIds = model.SelectedGuardianIds.Concat(newGuardianIds.Keys).Distinct().ToList();
+        var relationshipMap = BuildRelationshipMap(model.SelectedGuardianIds, model.SelectedGuardianRelationships, newGuardianIds);
+        await SyncGuardiansAsync(child.Id, allGuardianIds, relationshipMap);
+
         TempData["SuccessMessage"] = "Niño registrado.";
         return RedirectToAction(nameof(Index));
     }
@@ -143,11 +176,18 @@ public class ChildrenController : Controller
                 return Forbid();
             }
         }
-        var selectedGuardians = await _dbContext.ChildGuardians
+
+        var linkedGuardians = await _dbContext.ChildGuardians
             .Where(x => x.ChildId == id)
-            .Select(x => x.GuardianId)
+            .Join(_dbContext.Guardians, cg => cg.GuardianId, g => g.Id,
+                (cg, g) => new { g.Id, g.FullName, g.PhoneNumber, cg.Relationship })
             .ToListAsync();
-        await LoadLookupsAsync(selectedGuardians);
+
+        ViewBag.LinkedGuardians = linkedGuardians
+            .Select(g => new { g.Id, g.FullName, g.PhoneNumber, g.Relationship })
+            .ToList();
+
+        await LoadLookupsAsync();
 
         return View(new ChildCreateViewModel
         {
@@ -157,7 +197,8 @@ public class ChildrenController : Controller
             Age = child.Age,
             CurrentClassGroupId = child.CurrentClassGroupId,
             IsActive = child.IsActive,
-            SelectedGuardianIds = selectedGuardians
+            SelectedGuardianIds = linkedGuardians.Select(x => x.Id).ToList(),
+            SelectedGuardianRelationships = linkedGuardians.Select(x => x.Relationship).ToList()
         });
     }
 
@@ -165,6 +206,9 @@ public class ChildrenController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(ChildCreateViewModel model)
     {
+        foreach (var key in ModelState.Keys.Where(k => k.StartsWith("NewGuardians")).ToList())
+            ModelState.Remove(key);
+
         await LoadLookupsAsync();
         if (!ModelState.IsValid) return View(model);
 
@@ -202,13 +246,17 @@ public class ChildrenController : Controller
         }
 
         await _dbContext.SaveChangesAsync();
-        await SyncGuardiansAsync(child.Id, model.SelectedGuardianIds);
+
+        var newGuardianIds = await CreateNewGuardiansAsync(model.NewGuardians);
+        var allGuardianIds = model.SelectedGuardianIds.Concat(newGuardianIds.Keys).Distinct().ToList();
+        var relationshipMap = BuildRelationshipMap(model.SelectedGuardianIds, model.SelectedGuardianRelationships, newGuardianIds);
+        await SyncGuardiansAsync(child.Id, allGuardianIds, relationshipMap);
 
         TempData["SuccessMessage"] = "Niño actualizado.";
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task LoadLookupsAsync(IEnumerable<int>? selectedGuardianIds = null)
+    private async Task LoadLookupsAsync()
     {
         var groupsQuery = _dbContext.ClassGroups.AsNoTracking().Where(x => x.IsActive);
         if (User.IsInRole(ApplicationRoles.Teacher))
@@ -218,36 +266,91 @@ public class ChildrenController : Controller
         }
 
         var groups = await groupsQuery.OrderBy(x => x.MinAge).ToListAsync();
-        var selectedIds = selectedGuardianIds?.Distinct().ToList() ?? new List<int>();
-        var guardiansQuery = _dbContext.Guardians.AsNoTracking().Where(x => x.IsActive || selectedIds.Contains(x.Id));
-        var guardians = await guardiansQuery.OrderBy(x => x.FullName).ToListAsync();
         ViewBag.ClassGroups = new SelectList(groups, "Id", "Name");
-        ViewBag.Guardians = guardians;
     }
 
-    private async Task SyncGuardiansAsync(int childId, IEnumerable<int> guardianIds)
+    // Creates new guardians from inline form entries, reusing existing ones if the phone already exists.
+    // Returns a map of (newGuardianId → relationship).
+    private async Task<Dictionary<int, string>> CreateNewGuardiansAsync(IEnumerable<NewGuardianEntry> entries)
+    {
+        var result = new Dictionary<int, string>();
+        foreach (var entry in entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.FullName) || string.IsNullOrWhiteSpace(entry.PhoneNumber))
+                continue;
+
+            var phone = entry.PhoneNumber.Trim();
+            var existing = await _dbContext.Guardians.FirstOrDefaultAsync(g => g.PhoneNumber == phone);
+            if (existing is not null)
+            {
+                result[existing.Id] = entry.Relationship;
+            }
+            else
+            {
+                var guardian = new Guardian
+                {
+                    FullName = entry.FullName.Trim(),
+                    PhoneNumber = phone,
+                    SecondaryPhoneNumber = string.IsNullOrWhiteSpace(entry.SecondaryPhoneNumber) ? null : entry.SecondaryPhoneNumber.Trim(),
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.Guardians.Add(guardian);
+                await _dbContext.SaveChangesAsync();
+                result[guardian.Id] = entry.Relationship;
+            }
+        }
+        return result;
+    }
+
+    // Builds a dictionary mapping guardianId → relationship from existing selections plus newly created ones.
+    private static Dictionary<int, string> BuildRelationshipMap(
+        List<int> selectedIds,
+        List<string> selectedRelationships,
+        Dictionary<int, string> newGuardianIds)
+    {
+        var map = new Dictionary<int, string>();
+        for (var i = 0; i < selectedIds.Count; i++)
+        {
+            var rel = i < selectedRelationships.Count ? selectedRelationships[i] : "Tutor";
+            map[selectedIds[i]] = string.IsNullOrWhiteSpace(rel) ? "Tutor" : rel;
+        }
+        foreach (var (id, rel) in newGuardianIds)
+            map[id] = rel;
+        return map;
+    }
+
+    private async Task SyncGuardiansAsync(int childId, IEnumerable<int> guardianIds, Dictionary<int, string> relationshipMap)
     {
         var selected = guardianIds.Distinct().ToHashSet();
         var existing = await _dbContext.ChildGuardians.Where(x => x.ChildId == childId).ToListAsync();
 
         var toRemove = existing.Where(x => !selected.Contains(x.GuardianId)).ToList();
         if (toRemove.Count > 0)
-        {
             _dbContext.ChildGuardians.RemoveRange(toRemove);
-        }
 
-        var existingIds = existing.Select(x => x.GuardianId).ToHashSet();
-        foreach (var guardianId in selected.Where(x => !existingIds.Contains(x)))
+        var existingByGuardian = existing.ToDictionary(x => x.GuardianId);
+        foreach (var guardianId in selected)
         {
-            _dbContext.ChildGuardians.Add(new ChildGuardian
+            var relationship = relationshipMap.GetValueOrDefault(guardianId, "Tutor");
+            if (existingByGuardian.TryGetValue(guardianId, out var link))
             {
-                ChildId = childId,
-                GuardianId = guardianId,
-                Relationship = "Tutor",
-                IsPrimary = false,
-                IsAuthorizedPickup = true,
-                CreatedAt = DateTime.UtcNow
-            });
+                // Update relationship if it changed
+                if (link.Relationship != relationship)
+                    link.Relationship = relationship;
+            }
+            else
+            {
+                _dbContext.ChildGuardians.Add(new ChildGuardian
+                {
+                    ChildId = childId,
+                    GuardianId = guardianId,
+                    Relationship = relationship,
+                    IsPrimary = false,
+                    IsAuthorizedPickup = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
         }
 
         await _dbContext.SaveChangesAsync();
