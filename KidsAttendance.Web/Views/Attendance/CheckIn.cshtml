@@ -1,11 +1,13 @@
 @model KidsAttendance.Web.ViewModels.CheckInViewModel
 @{
     ViewData["Title"] = "Registrar Entrada";
-    var children = ViewBag.Children as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.Child> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.Child>();
     var groups = ViewBag.Groups as IReadOnlyList<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup> ?? new List<KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup>();
     var teacherFixedGroup = ViewBag.TeacherFixedGroup as KidsAttendance.Infrastructure.Persistence.Entities.ClassGroup;
     var checkInBlocked = (ViewBag.CheckInBlocked as bool?) == true;
     var checkInBlockedMessage = ViewBag.CheckInBlockedMessage as string;
+    var registerUrl = teacherFixedGroup != null
+        ? Url.Action("Create", "Children", new { myGroupOnly = true })
+        : Url.Action("Create", "Children");
 }
 <h1 class="h4 mb-3">Registrar Entrada</h1>
 @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert alert-success">@successMessage</div> }
@@ -30,33 +32,39 @@
             {
                 <label asp-for="ClassGroupId" class="form-label">Grupo</label>
                 <select asp-for="ClassGroupId" id="ClassGroupId" class="form-select form-select-lg mb-2">
-                    <option value="">Grupo</option>
+                    <option value="">Seleccioná un grupo</option>
                     @foreach (var g in groups) { <option value="@g.Id">@g.Name</option> }
                 </select>
                 <span asp-validation-for="ClassGroupId" class="text-danger small"></span>
             }
 
-            <label class="form-label">Padre (buscar por celular o nombre)</label>
-            <select asp-for="GuardianId" id="GuardianId" class="form-select form-select-lg mb-2">
-                <option value="">Buscar padre...</option>
-            </select>
-            <span asp-validation-for="GuardianId" class="text-danger small"></span>
-            <div class="small text-muted mb-2">Si el padre no se encuentra registrado , crealo en esta opcion</div>
-       <br />
-          
-            <div class="d-flex gap-2 mb-3">
-                <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-info btn-sm">Agregar padre nuevo</button>
+            <label asp-for="ChildIds" class="form-label mt-2">Niños (buscar por nombre)</label>
+            <select asp-for="ChildIds" id="ChildIds" class="form-select form-select-lg mb-1" multiple></select>
+            <span asp-validation-for="ChildIds" class="text-danger small"></span>
+            <div class="small text-muted mb-3">
+                ¿El niño no está registrado?
+                <a href="@registerUrl" class="fw-semibold">Registrar nuevo niño</a>
             </div>
 
-            <div id="quick-guardian-panel" class="border rounded p-2 mb-3 d-none">
-               
-                <div class="small fw-semibold mb-2">Agregar padre rápido</div>
+            <label asp-for="GuardianId" class="form-label">Quién entrega</label>
+            <select asp-for="GuardianId" id="GuardianId" class="form-select form-select-lg mb-1">
+                <option value="">Seleccioná quién entrega...</option>
+            </select>
+            <span asp-validation-for="GuardianId" class="text-danger small"></span>
+
+            <div id="no-guardian-found" class="d-none mb-3 mt-2">
+                <div class="small text-muted mb-2">¿La persona que entrega no está en la lista?</div>
+                <button id="btn-show-quick-guardian" type="button" class="btn btn-outline-secondary btn-sm">Agregar padre / tutor nuevo</button>
+            </div>
+
+            <div id="quick-guardian-panel" class="border rounded p-3 mb-3 mt-2 d-none">
+                <div class="small fw-semibold mb-2">Registrar quién entrega</div>
                 <div class="row g-2">
                     <div class="col-12 col-md-6">
-                        <input id="quick-guardian-name" class="form-control" placeholder="Nombre padre" />
+                        <input id="quick-guardian-name" class="form-control" placeholder="Nombre completo" />
                     </div>
                     <div class="col-12 col-md-4">
-                        <input id="quick-guardian-phone" class="form-control" inputmode="numeric" pattern="\d{8,15}" placeholder="Celular padre" />
+                        <input id="quick-guardian-phone" class="form-control" inputmode="numeric" placeholder="Celular (solo números)" />
                     </div>
                     <div class="col-12 col-md-2">
                         <button id="btn-quick-save-guardian" type="button" class="btn btn-primary w-100">Guardar</button>
@@ -65,43 +73,19 @@
                 <div id="quick-guardian-msg" class="small mt-2"></div>
             </div>
 
-            <label asp-for="ChildIds" class="form-label">Niños</label>
-            <select asp-for="ChildIds" id="ChildIds" class="form-select form-select-lg mb-2" multiple size="6"></select>
-            <span asp-validation-for="ChildIds" class="text-danger small"></span>
-            <div class="small text-muted mb-2">Podés seleccionar uno o varios niños del mismo grupo.</div>
-            <div class="small text-muted mb-2">Si el niño no existe, crealo en esta opcion</div>
-            <div class="d-flex gap-2 mb-3">
-                <button id="btn-show-quick-child" type="button" class="btn btn-outline-success btn-sm">Agregar niño nuevo</button>
-            </div>
-
-            <div id="quick-child-panel" class="border rounded p-2 mb-3 d-none">
-                <div class="small fw-semibold mb-2">Agregar niño rápido</div>
-                <div class="row g-2">
-                    <div class="col-12 col-md-8">
-                        <input id="quick-child-name" class="form-control" placeholder="Nombre niño" />
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <input id="quick-child-age" class="form-control" type="number" min="0" placeholder="Edad" />
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <button id="btn-quick-save-child" type="button" class="btn btn-primary w-100">Guardar</button>
-                    </div>
-                </div>
-                <div id="quick-child-msg" class="small mt-2"></div>
-            </div>
-
-            <label asp-for="TokenNumber" class="form-label">Ficha</label>
+            <label asp-for="TokenNumber" class="form-label mt-1">Ficha</label>
             <input asp-for="TokenNumber" id="TokenNumber" class="form-control form-control-lg mb-1" placeholder="Se aplicará a todos los niños seleccionados" />
             <div class="form-text mb-2">Si registrás varios hijos en este ingreso, todos usarán esta misma ficha.</div>
             <span asp-validation-for="TokenNumber" class="text-danger small"></span>
 
-            <div class="border rounded p-2 mb-2 bg-white">
-                <label class="form-label mb-1">Firma entrada (opcional)</label>
+            <div class="border rounded p-2 mb-2 bg-white mt-2">
+                <label class="form-label mb-1">Firma entrada</label>
                 <canvas id="checkin-signature-pad" class="w-100" height="140"></canvas>
                 <input asp-for="CheckInSignatureBase64" type="hidden" id="CheckInSignatureBase64" />
                 <div class="mt-2 d-flex gap-2">
                     <button type="button" id="btn-clear-checkin-signature" class="btn btn-outline-warning btn-sm">Limpiar firma</button>
                 </div>
+                <div id="checkin-signature-error" class="text-danger small mt-1 d-none">La firma de entrada es requerida.</div>
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100" @(checkInBlocked ? "disabled" : null)>Registrar</button>
         </form>
@@ -112,9 +96,6 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        window.childrenCatalog = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(children.Select(c => new { c.Id, c.FullName, c.CurrentClassGroupId })));
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@5.0.4/dist/signature_pad.umd.min.js"></script>
     <script src="~/js/signature-helper.js" asp-append-version="true"></script>
     <script src="~/js/attendance-checkin.js" asp-append-version="true"></script>

@@ -748,65 +748,12 @@ public class AttendanceController : Controller
         return Json(guardians);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssociateGuardianToChild(int childId, int guardianId, string relationship = "Tutor")
+    [HttpGet]
+    public async Task<IActionResult> SearchChildren(string term, int classGroupId)
     {
-        var child = await _dbContext.Children.AsNoTracking().FirstOrDefaultAsync(x => x.Id == childId);
-        if (child is null)
+        if (string.IsNullOrWhiteSpace(term) || term.Trim().Length < 2 || classGroupId <= 0)
         {
-            return NotFound();
-        }
-
-        if (User.IsInRole(ApplicationRoles.Teacher))
-        {
-            var allowedGroups = await GetAssignedGroupIdsAsync();
-            if (!allowedGroups.Contains(child.CurrentClassGroupId))
-            {
-                return Forbid();
-            }
-        }
-
-        var exists = await _dbContext.ChildGuardians.AnyAsync(x => x.ChildId == childId && x.GuardianId == guardianId);
-        if (!exists)
-        {
-            _dbContext.ChildGuardians.Add(new ChildGuardian
-            {
-                ChildId = childId,
-                GuardianId = guardianId,
-                Relationship = string.IsNullOrWhiteSpace(relationship) ? "Tutor" : relationship.Trim(),
-                IsAuthorizedPickup = true,
-                IsPrimary = false,
-                CreatedAt = DateTime.UtcNow
-            });
-            await _dbContext.SaveChangesAsync();
-        }
-
-        return Json(new { success = true });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> QuickAddChild(string fullName, int classGroupId, int guardianId, int? age)
-    {
-        if (string.IsNullOrWhiteSpace(fullName))
-        {
-            return BadRequest(new { success = false, message = "El nombre del niño es requerido." });
-        }
-
-        if (classGroupId <= 0)
-        {
-            return BadRequest(new { success = false, message = "Seleccioná un grupo válido." });
-        }
-
-        if (guardianId <= 0)
-        {
-            return BadRequest(new { success = false, message = "Seleccioná un padre válido." });
-        }
-
-        if (age.HasValue && (age.Value < 0 || age.Value > 20))
-        {
-            return BadRequest(new { success = false, message = "La edad debe estar entre 0 y 20." });
+            return Json(Array.Empty<object>());
         }
 
         if (User.IsInRole(ApplicationRoles.Teacher) && !await IsGlobalAttendanceAsync())
@@ -814,42 +761,29 @@ public class AttendanceController : Controller
             var allowedGroups = await GetAssignedGroupIdsAsync();
             if (!allowedGroups.Contains(classGroupId))
             {
-                return Forbid();
+                return Json(Array.Empty<object>());
             }
         }
 
-        var child = new Child
-        {
-            FullName = fullName.Trim(),
-            Age = age,
-            CurrentClassGroupId = classGroupId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        _dbContext.Children.Add(child);
-        await _dbContext.SaveChangesAsync();
+        var normalized = term.Trim();
+        var data = await _dbContext.Children
+            .AsNoTracking()
+            .Where(c => c.IsActive && c.CurrentClassGroupId == classGroupId && c.FullName.Contains(normalized))
+            .OrderBy(c => c.FullName)
+            .Take(20)
+            .Select(c => new { c.Id, c.FullName })
+            .ToListAsync();
 
-        _dbContext.ChildGuardians.Add(new ChildGuardian
-        {
-            ChildId = child.Id,
-            GuardianId = guardianId,
-            Relationship = "Tutor",
-            IsPrimary = false,
-            IsAuthorizedPickup = true,
-            CreatedAt = DateTime.UtcNow
-        });
-        await _dbContext.SaveChangesAsync();
-
-        return Json(new { success = true, childId = child.Id, fullName = child.FullName });
+        return Json(data);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> QuickAddGuardian(string fullName, string phoneNumber)
+    public async Task<IActionResult> RegisterDropoffGuardian(string fullName, string phoneNumber, string childIds)
     {
-        if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phoneNumber))
+        if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(childIds))
         {
-            return BadRequest(new { success = false, message = "El nombre y el celular son requeridos." });
+            return BadRequest(new { success = false, message = "Nombre, celular y niños son requeridos." });
         }
 
         var normalizedPhone = phoneNumber.Trim();
@@ -858,23 +792,50 @@ public class AttendanceController : Controller
             return BadRequest(new { success = false, message = "El celular debe contener solo números (8 a 15 dígitos)." });
         }
 
-        var existing = await _dbContext.Guardians.FirstOrDefaultAsync(x => x.PhoneNumber == normalizedPhone);
-        if (existing is not null)
+        var ids = childIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => int.TryParse(x, out var id) ? id : 0)
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
         {
-            return Json(new { success = true, guardianId = existing.Id, fullName = existing.FullName, phoneNumber = existing.PhoneNumber, existing = true });
+            return BadRequest(new { success = false, message = "Seleccioná al menos un niño." });
         }
 
-        var guardian = new Guardian
+        var guardian = await _dbContext.Guardians.FirstOrDefaultAsync(x => x.PhoneNumber == normalizedPhone);
+        if (guardian is null)
         {
-            FullName = fullName.Trim(),
-            PhoneNumber = normalizedPhone,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        _dbContext.Guardians.Add(guardian);
-        await _dbContext.SaveChangesAsync();
+            guardian = new Guardian
+            {
+                FullName = fullName.Trim(),
+                PhoneNumber = normalizedPhone,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            _dbContext.Guardians.Add(guardian);
+            await _dbContext.SaveChangesAsync();
+        }
 
-        return Json(new { success = true, guardianId = guardian.Id, fullName = guardian.FullName, phoneNumber = guardian.PhoneNumber, existing = false });
+        foreach (var childId in ids)
+        {
+            var exists = await _dbContext.ChildGuardians.AnyAsync(x => x.ChildId == childId && x.GuardianId == guardian.Id);
+            if (!exists)
+            {
+                _dbContext.ChildGuardians.Add(new ChildGuardian
+                {
+                    ChildId = childId,
+                    GuardianId = guardian.Id,
+                    Relationship = "Tutor",
+                    IsAuthorizedPickup = true,
+                    IsPrimary = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        await _dbContext.SaveChangesAsync();
+        return Json(new { success = true, guardianId = guardian.Id, fullName = guardian.FullName, phoneNumber = guardian.PhoneNumber });
     }
 
     private async Task<AttendanceSession> EnsureTodaySessionAsync()

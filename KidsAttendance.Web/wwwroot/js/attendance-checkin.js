@@ -1,148 +1,69 @@
 $(function () {
     var digitsOnlyPhonePattern = /^\d{8,15}$/;
-    var noResultsFocusDelayMs = 1000;
-    var focusHighlightClass = "border border-2 border-warning shadow-sm";
     var signatureHandler = window.kidsAttendanceSignatures
         ? window.kidsAttendanceSignatures.initSignaturePad("checkin-signature-pad", "CheckInSignatureBase64", "btn-clear-checkin-signature")
         : null;
 
     var form = $("#checkin-form");
-    var guardianSelect = $("#GuardianId");
     var childSelect = $("#ChildIds");
-    var showQuickGuardianButton = $("#btn-show-quick-guardian");
-    var showQuickChildButton = $("#btn-show-quick-child");
+    var guardianSelect = $("#GuardianId");
     var classGroupInput = $("#ClassGroupId");
+    var noGuardianFound = $("#no-guardian-found");
+    var quickGuardianPanel = $("#quick-guardian-panel");
     var antiForgeryToken = $("input[name='__RequestVerificationToken']").val();
-    var guardianSearchState = {
-        hasNoResults: false,
-        term: "",
-        focusTimerId: 0,
-        isAutoClosing: false
-    };
-    var childSearchState = {
-        hasNoResults: false,
-        term: "",
-        focusTimerId: 0,
-        isAutoClosing: false
-    };
-
-    function clearFocusTimer(searchState) {
-        if (searchState.focusTimerId) {
-            window.clearTimeout(searchState.focusTimerId);
-            searchState.focusTimerId = 0;
-        }
-    }
-
-    function resetSearchState(searchState) {
-        clearFocusTimer(searchState);
-        searchState.hasNoResults = false;
-        searchState.term = "";
-        searchState.isAutoClosing = false;
-    }
-
-    function focusQuickAddButton(button) {
-        if (!button.length) {
-            return;
-        }
-
-        button.trigger("focus");
-        button.addClass(focusHighlightClass);
-        window.setTimeout(function () {
-            button.removeClass(focusHighlightClass);
-        }, 1800);
-    }
-
-    function isDropdownOpen(selectElement) {
-        return selectElement.data("select2") && selectElement.data("select2").isOpen();
-    }
-
-    function scheduleNoResultsFocus(searchState, selectElement, quickAddButton, shouldFocusCallback) {
-        clearFocusTimer(searchState);
-        if (!searchState.hasNoResults || searchState.term.length === 0) {
-            return;
-        }
-
-        searchState.focusTimerId = window.setTimeout(function () {
-            searchState.focusTimerId = 0;
-            if (!searchState.hasNoResults || !isDropdownOpen(selectElement)) {
-                return;
-            }
-
-            if (typeof shouldFocusCallback === "function" && !shouldFocusCallback()) {
-                return;
-            }
-
-            searchState.isAutoClosing = true;
-            selectElement.select2("close");
-            focusQuickAddButton(quickAddButton);
-            resetSearchState(searchState);
-        }, noResultsFocusDelayMs);
-    }
 
     function getClassGroupId() {
         return parseInt(classGroupInput.val(), 10) || 0;
     }
 
-    function renderChildrenOptions(children, selectedIds) {
-        childSelect.empty();
-        children.forEach(function (item) {
-            childSelect.append($("<option>", { value: item.id, text: item.fullName }));
-        });
-        if (Array.isArray(selectedIds) && selectedIds.length > 0) {
-            childSelect.val(selectedIds);
-        }
-        childSelect.trigger("change");
+    function getSelectedChildIds() {
+        return (childSelect.val() || []).map(function (id) { return parseInt(id, 10); }).filter(Boolean);
     }
 
-    function loadChildrenByGuardian(newChildIdToSelect) {
-        var guardianId = guardianSelect.val();
-        var classGroupId = getClassGroupId();
-        if (!guardianId || !classGroupId) {
-            childSelect.empty();
-            resetSearchState(childSearchState);
+    function populateGuardianSelect(guardians) {
+        guardianSelect.empty().append($("<option>", { value: "", text: "Seleccioná quién entrega..." }));
+        guardians.forEach(function (g) {
+            guardianSelect.append($("<option>", { value: g.id, text: g.fullName + " - " + g.phoneNumber }));
+        });
+        guardianSelect.trigger("change");
+
+        if (guardians.length === 1) {
+            guardianSelect.val(String(guardians[0].id)).trigger("change");
+        }
+        noGuardianFound.removeClass("d-none");
+    }
+
+    function loadGuardiansByChildren() {
+        var ids = getSelectedChildIds();
+        if (ids.length === 0) {
+            guardianSelect.empty().append($("<option>", { value: "", text: "Seleccioná quién entrega..." }));
+            guardianSelect.trigger("change");
+            noGuardianFound.addClass("d-none");
+            quickGuardianPanel.addClass("d-none");
             return;
         }
 
-        var previouslySelectedIds = childSelect.val() || [];
-        $.get("/Attendance/GetChildrenByGuardianAndGroup", { guardianId: guardianId, classGroupId: classGroupId })
+        $.get("/Attendance/GetGuardiansForChildren", { childIds: ids.join(",") })
             .done(function (data) {
-                if (!Array.isArray(data)) {
-                    return;
-                }
-
-                childSearchState.hasNoResults = data.length === 0;
-                childSearchState.term = "";
-                clearFocusTimer(childSearchState);
-
-                var availableIds = new Set(data.map(function (item) { return String(item.id); }));
-                var selectedIds = previouslySelectedIds.filter(function (id) { return availableIds.has(String(id)); });
-                if (newChildIdToSelect !== undefined && newChildIdToSelect !== null) {
-                    var newChildIdAsString = String(newChildIdToSelect);
-                    if (availableIds.has(newChildIdAsString) && selectedIds.indexOf(newChildIdAsString) === -1) {
-                        selectedIds.push(newChildIdAsString);
-                    }
-                }
-
-                if (selectedIds.length === 0 && data.length === 1) {
-                    selectedIds = [String(data[0].id)];
-                }
-
-                renderChildrenOptions(data, selectedIds);
+                populateGuardianSelect(Array.isArray(data) ? data : []);
             });
     }
 
-    guardianSelect.select2({
+    childSelect.select2({
         theme: "bootstrap-5",
         width: "100%",
-        placeholder: "Buscar padre...",
+        placeholder: "Buscar niño por nombre...",
         minimumInputLength: 2,
         language: {
             noResults: function () {
                 return "No se encontraron resultados.";
+            },
+            inputTooShort: function () {
+                return "Escribí al menos 2 letras.";
             }
         },
         ajax: {
-            url: "/Attendance/SearchGuardianByPhone",
+            url: "/Attendance/SearchChildren",
             dataType: "json",
             delay: 250,
             data: function (params) {
@@ -151,117 +72,43 @@ $(function () {
                     classGroupId: getClassGroupId()
                 };
             },
-            processResults: function (data, params) {
-                var results = Array.isArray(data) ? data.map(function (item) {
-                    return {
-                        id: item.id,
-                        text: item.fullName + " - " + item.phoneNumber
-                    };
-                }) : [];
-
-                guardianSearchState.hasNoResults = results.length === 0;
-                guardianSearchState.term = (params.term || "").trim();
-                if (guardianSearchState.hasNoResults) {
-                    scheduleNoResultsFocus(guardianSearchState, guardianSelect, showQuickGuardianButton, function () {
-                        return !guardianSelect.val();
-                    });
-                }
-                else {
-                    clearFocusTimer(guardianSearchState);
-                }
-
-                return { results: results };
+            processResults: function (data) {
+                return {
+                    results: Array.isArray(data) ? data.map(function (item) {
+                        return { id: item.id, text: item.fullName };
+                    }) : []
+                };
             }
         }
     });
 
-    childSelect.select2({
+    guardianSelect.select2({
         theme: "bootstrap-5",
         width: "100%",
-        placeholder: "Seleccioná uno o varios niños",
-        language: {
-            noResults: function () {
-                return "No se encontraron resultados.";
-            }
-        },
-        matcher: function (params, data) {
-            var term = $.trim(params.term || "");
-            if (term.length === 0) {
-                childSearchState.term = "";
-                childSearchState.hasNoResults = false;
-                clearFocusTimer(childSearchState);
-                return data;
-            }
-
-            if (typeof data.text === "undefined") {
-                return null;
-            }
-
-            if (data.text.toUpperCase().indexOf(term.toUpperCase()) > -1) {
-                childSearchState.term = term;
-                return data;
-            }
-
-            return null;
-        }
+        placeholder: "Seleccioná quién entrega..."
     });
 
-    guardianSelect.on("change", loadChildrenByGuardian);
-    guardianSelect.on("select2:select", function () {
-        resetSearchState(guardianSearchState);
-    });
-    guardianSelect.on("select2:closing", function () {
-        if (guardianSearchState.isAutoClosing) {
-            guardianSearchState.isAutoClosing = false;
-            return;
-        }
+    childSelect.on("change", loadGuardiansByChildren);
 
-        clearFocusTimer(guardianSearchState);
-        guardianSearchState.hasNoResults = false;
-    });
-
-    childSelect.on("change", function () {
-        if ((childSelect.val() || []).length > 0) {
-            resetSearchState(childSearchState);
-        }
-    });
-    childSelect.on("select2:open", function () {
-        var searchField = $(".select2-container--open .select2-search__field");
-        searchField.off("input.quickChildFocus").on("input.quickChildFocus", function () {
-            window.setTimeout(function () {
-                var hasNoResultsMessage = $(".select2-container--open .select2-results__message").length > 0;
-                childSearchState.term = (searchField.val() || "").toString().trim();
-                childSearchState.hasNoResults = hasNoResultsMessage && childSearchState.term.length > 0;
-                if (childSearchState.hasNoResults) {
-                    scheduleNoResultsFocus(childSearchState, childSelect, showQuickChildButton);
-                }
-                else {
-                    clearFocusTimer(childSearchState);
-                }
-            }, 0);
-        });
-    });
-    childSelect.on("select2:closing", function () {
-        if (childSearchState.isAutoClosing) {
-            childSearchState.isAutoClosing = false;
-            return;
-        }
-
-        clearFocusTimer(childSearchState);
-        childSearchState.hasNoResults = false;
+    classGroupInput.on("change", function () {
+        childSelect.val(null).trigger("change");
+        guardianSelect.empty().append($("<option>", { value: "", text: "Seleccioná quién entrega..." })).trigger("change");
+        noGuardianFound.addClass("d-none");
+        quickGuardianPanel.addClass("d-none");
     });
 
     $("#btn-show-quick-guardian").on("click", function () {
-        $("#quick-guardian-panel").toggleClass("d-none");
-    });
-
-    $("#btn-show-quick-child").on("click", function () {
-        $("#quick-child-panel").toggleClass("d-none");
+        quickGuardianPanel.toggleClass("d-none");
+        if (!quickGuardianPanel.hasClass("d-none")) {
+            $("#quick-guardian-name").trigger("focus");
+        }
     });
 
     $("#btn-quick-save-guardian").on("click", function () {
-        var name = ($("#quick-guardian-name").val() || "").toString().trim();
-        var phone = ($("#quick-guardian-phone").val() || "").toString().trim();
+        var name = ($("#quick-guardian-name").val() || "").trim();
+        var phone = ($("#quick-guardian-phone").val() || "").trim();
+        var ids = getSelectedChildIds();
+
         if (!name || !phone) {
             $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("Nombre y celular son requeridos.");
             return;
@@ -270,84 +117,42 @@ $(function () {
             $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("El celular debe contener solo números (8 a 15 dígitos).");
             return;
         }
+        if (ids.length === 0) {
+            $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text("Seleccioná al menos un niño primero.");
+            return;
+        }
 
         $.ajax({
-            url: "/Attendance/QuickAddGuardian",
+            url: "/Attendance/RegisterDropoffGuardian",
             type: "POST",
-            headers: { "RequestVerificationToken": antiForgeryToken },
             data: {
                 __RequestVerificationToken: antiForgeryToken,
                 fullName: name,
-                phoneNumber: phone
+                phoneNumber: phone,
+                childIds: ids.join(",")
             }
         }).done(function (result) {
             if (!result || !result.success) {
-                var errorMessage = result && result.message ? result.message : "No se pudo guardar padre.";
-                $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
+                var msg = result && result.message ? result.message : "No se pudo guardar.";
+                $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text(msg);
                 return;
             }
 
             var optionText = result.fullName + " - " + result.phoneNumber;
-            var newOption = new Option(optionText, result.guardianId, true, true);
-            guardianSelect.append(newOption).trigger("change");
-            $("#quick-guardian-msg").removeClass("text-danger").addClass("text-success").text("Padre guardado.");
-            $("#quick-guardian-panel").addClass("d-none");
+            var exists = guardianSelect.find("option[value='" + result.guardianId + "']").length > 0;
+            if (!exists) {
+                guardianSelect.append($("<option>", { value: result.guardianId, text: optionText }));
+            }
+            guardianSelect.val(String(result.guardianId)).trigger("change");
+
+            $("#quick-guardian-msg").removeClass("text-danger").addClass("text-success").text("Guardado correctamente.");
+            quickGuardianPanel.addClass("d-none");
+            noGuardianFound.addClass("d-none");
+            $("#quick-guardian-name").val("");
+            $("#quick-guardian-phone").val("");
         }).fail(function (xhr) {
             var response = xhr.responseJSON || {};
-            var errorMessage = response.message || "No se pudo guardar padre.";
-            $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
-        });
-    });
-
-    $("#btn-quick-save-child").on("click", function () {
-        var fullName = ($("#quick-child-name").val() || "").toString().trim();
-        var ageRawValue = ($("#quick-child-age").val() || "").toString().trim();
-        var guardianId = guardianSelect.val();
-        var classGroupId = getClassGroupId();
-        var age = null;
-
-        if (!guardianId) {
-            $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("Seleccioná primero un padre.");
-            return;
-        }
-
-        if (!fullName || !classGroupId) {
-            $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("Nombre de niño requerido.");
-            return;
-        }
-        if (ageRawValue) {
-            age = parseInt(ageRawValue, 10);
-            if (Number.isNaN(age) || age < 0 || age > 20) {
-                $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text("La edad debe ser un número entre 0 y 20.");
-                return;
-            }
-        }
-
-        $.ajax({
-            url: "/Attendance/QuickAddChild",
-            type: "POST",
-            headers: { "RequestVerificationToken": antiForgeryToken },
-            data: {
-                __RequestVerificationToken: antiForgeryToken,
-                fullName: fullName,
-                classGroupId: classGroupId,
-                guardianId: guardianId,
-                age: age
-            }
-        }).done(function (result) {
-            if (!result || !result.success) {
-                var errorMessage = result && result.message ? result.message : "No se pudo guardar niño.";
-                $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
-                return;
-            }
-
-            loadChildrenByGuardian(result.childId);
-            $("#quick-child-msg").removeClass("text-danger").addClass("text-success").text("Niño guardado.");
-            $("#quick-child-panel").addClass("d-none");
-        }).fail(function (xhr) {
-            var response = xhr.responseJSON || {};
-            var errorMessage = response.message || "No se pudo guardar niño.";
-            $("#quick-child-msg").removeClass("text-success").addClass("text-danger").text(errorMessage);
+            $("#quick-guardian-msg").removeClass("text-success").addClass("text-danger").text(response.message || "No se pudo guardar.");
         });
     });
 
@@ -355,9 +160,23 @@ $(function () {
         return;
     }
 
-    form.on("submit", function () {
+    form.on("submit", function (e) {
         if (signatureHandler) {
             signatureHandler.updateHidden();
         }
+
+        var signatureValue = $("#CheckInSignatureBase64").val();
+        if (!signatureValue) {
+            e.preventDefault();
+            $("#checkin-signature-error").removeClass("d-none");
+            document.getElementById("checkin-signature-pad").scrollIntoView({ behavior: "smooth", block: "center" });
+            return false;
+        }
+
+        $("#checkin-signature-error").addClass("d-none");
+    });
+
+    $("#btn-clear-checkin-signature").on("click", function () {
+        $("#checkin-signature-error").addClass("d-none");
     });
 });

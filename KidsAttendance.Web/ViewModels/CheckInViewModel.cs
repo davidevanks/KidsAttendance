@@ -17,5 +17,6 @@ public class CheckInViewModel
     [StringLength(30, ErrorMessage = "La ficha no puede tener más de 30 caracteres.")]
     public string? TokenNumber { get; set; }
 
+    [Required(ErrorMessage = "La firma de entrada es requerida.")]
     public string? CheckInSignatureBase64 { get; set; }
 }

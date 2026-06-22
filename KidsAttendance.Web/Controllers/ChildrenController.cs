@@ -161,7 +161,7 @@ public class ChildrenController : Controller
         await SyncGuardiansAsync(child.Id, allGuardianIds, relationshipMap);
 
         TempData["SuccessMessage"] = "Niño registrado.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { myGroupOnly = model.MyGroupOnly });
     }
 
     [HttpGet]
@@ -255,7 +255,7 @@ public class ChildrenController : Controller
         await SyncGuardiansAsync(child.Id, allGuardianIds, relationshipMap);
 
         TempData["SuccessMessage"] = "Niño actualizado.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { myGroupOnly = model.MyGroupOnly });
     }
 
     private async Task LoadLookupsAsync(bool myGroupOnly = false)
